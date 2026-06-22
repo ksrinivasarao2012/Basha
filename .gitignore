@@ -53,3 +53,9 @@ evaluate_comparison.py
 
 # Large external benchmark dataset (download instead of commit)
 samples/input/flores_evaluation_set.json
+
+# Secondary Streamlit client (primary UI is client/web/index.html)
+client/streamlit_app.py
+
+# Env template
+.env.example

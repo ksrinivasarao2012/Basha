@@ -66,6 +66,11 @@ class JobMetrics(BaseModel):
     transcription: str = Field(..., description="ASR transcription of the output audio")
     asr_available: bool = Field(True, description="Whether ASR produced a usable transcription")
     translated_text: Optional[str] = Field(None, description="Input text translated into the target language (shown in the UI).")
+    translation_time: Optional[float] = Field(None, description="Translation time in seconds")
+    synthesis_time: Optional[float] = Field(None, description="Synthesis/TTS time in seconds")
+    cache_savings: Optional[float] = Field(None, description="Percentage of chunks loaded from cache")
+    cache_hits: Optional[int] = Field(None, description="Number of cache hits")
+    total_chunks: Optional[int] = Field(None, description="Total chunks processed")
 
 
 class JobStatusResponse(BaseModel):

@@ -139,14 +139,18 @@
         <a id="tts-download" class="btn-secondary w-max" download>
           <span class="material-symbols-outlined text-[18px]">download</span> Download MP3
         </a>
-        <div class="grid grid-cols-2 gap-gutter pt-2">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-gutter pt-2">
           <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
             <p class="text-label-sm text-secondary uppercase tracking-wide">Real-Time Factor</p>
             <p id="stat-rtf" class="text-headline-md text-primary-container mt-1">—</p>
           </div>
           <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Speed</p>
-            <p id="stat-speed" class="text-headline-md text-primary-container mt-1">—</p>
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Cache Savings</p>
+            <p id="stat-cache-savings" class="text-headline-md text-primary-container mt-1">—</p>
+          </div>
+          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Latency (Trans | TTS)</p>
+            <p id="stat-latency" class="text-headline-md text-primary-container mt-1">—</p>
           </div>
         </div>
       </div>
@@ -195,6 +199,20 @@ Narrator: And so their journey began.</textarea>
         <div class="bg-surface rounded-xl p-4 border border-outline-variant space-y-3">
           <p class="text-label-sm text-secondary uppercase tracking-wide">Cast Assignment</p>
           <ul id="cast-list" class="space-y-2"></ul>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-gutter pt-2">
+          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Real-Time Factor</p>
+            <p id="scene-stat-rtf" class="text-headline-md text-primary-container mt-1">—</p>
+          </div>
+          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Cache Savings</p>
+            <p id="scene-stat-cache-savings" class="text-headline-md text-primary-container mt-1">—</p>
+          </div>
+          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Latency (Trans | TTS)</p>
+            <p id="scene-stat-latency" class="text-headline-md text-primary-container mt-1">—</p>
+          </div>
         </div>
       </div>
     </section>
@@ -284,9 +302,14 @@ document.getElementById("generate-btn").onclick = async () => {
         document.getElementById("tts-audio").src = url;
         const dl = document.getElementById("tts-download");
         dl.href = url; dl.download = `basha_${document.getElementById("tts-lang").value}.mp3`;
-        const rtf = s.metrics ? s.metrics.rtf : null;
+        const metrics = s.metrics || {};
+        const rtf = metrics.rtf;
         document.getElementById("stat-rtf").textContent = rtf ? rtf.toFixed(3) : "—";
-        document.getElementById("stat-speed").textContent = rtf ? (1/rtf).toFixed(1) + "× faster" : "—";
+        const savings = metrics.cache_savings;
+        document.getElementById("stat-cache-savings").textContent = savings !== undefined ? savings.toFixed(1) + "%" : "—";
+        const trans = metrics.translation_time || 0;
+        const synth = metrics.synthesis_time || 0;
+        document.getElementById("stat-latency").textContent = `${trans.toFixed(2)}s | ${synth.toFixed(2)}s`;
         document.getElementById("tts-translation").textContent =
           (s.metrics && s.metrics.translated_text) ? s.metrics.translated_text : "(not available)";
         result.classList.remove("hidden"); status.classList.add("hidden");
@@ -350,6 +373,22 @@ document.getElementById("scene-btn").onclick = async () => {
         <span class="text-primary-container bg-[#E3F2FD] px-2 py-0.5 rounded text-xs">${voice}</span>`;
       ul.appendChild(li);
     }
+
+    const metricsHeader = resp.headers.get("X-Metrics");
+    let metrics = {};
+    if (metricsHeader) {
+      try {
+        metrics = JSON.parse(metricsHeader);
+      } catch (e) { console.error(e); }
+    }
+    const rtf = metrics.rtf;
+    document.getElementById("scene-stat-rtf").textContent = rtf ? rtf.toFixed(3) : "—";
+    const savings = metrics.cache_savings;
+    document.getElementById("scene-stat-cache-savings").textContent = savings !== undefined ? savings.toFixed(1) + "%" : "—";
+    const trans = metrics.translation_time || 0;
+    const synth = metrics.synthesis_time || 0;
+    document.getElementById("scene-stat-latency").textContent = `${trans.toFixed(2)}s | ${synth.toFixed(2)}s`;
+
     result.classList.remove("hidden"); status.classList.add("hidden");
     loadCache();
   } catch (e) { status.textContent = "Error: " + e.message; }

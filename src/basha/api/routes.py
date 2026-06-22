@@ -31,14 +31,11 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
     logger.info(f"Background task starting for job {job_id} using backend {backend}")
     job_manager.start_job(job_id)
 
-    start_time = time.perf_counter()
     try:
         # Run orchestrator
-        audio_bytes = orchestrator.process(text, target_lang, backend=backend, voice=voice, gender=gender)
+        audio_bytes, pipeline_metrics = orchestrator.process(text, target_lang, backend=backend, voice=voice, gender=gender)
         if not audio_bytes:
             raise ValueError("Stitcher returned empty audio bytes.")
-
-        synthesis_time = time.perf_counter() - start_time
 
         # Save the stitched file to cache using job_id to prevent memory footprint issues
         cache_dir = orchestrator.cache.cache_dir
@@ -74,9 +71,6 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
             asr_note = f"ASR error: {e}"
             transcription = ""
 
-        # RTF is independent of ASR and is always valid.
-        rtf = calculate_rtf(synthesis_time, audio_duration)
-
         # Translate once: shown in the UI as the "translated text" AND reused for
         # the CER/WER comparison below.
         try:
@@ -96,15 +90,20 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
         metrics_dict = {
             "cer": cer,
             "wer": wer,
-            "rtf": round(rtf, 4),
+            "rtf": round(pipeline_metrics.get("rtf", 0.0), 4),
             "transcription": transcription or f"[ASR unavailable] {asr_note}",
             "asr_available": asr_available,
             "translated_text": translated_text,
+            "translation_time": round(pipeline_metrics.get("translation_time", 0.0), 4),
+            "synthesis_time": round(pipeline_metrics.get("synthesis_time", 0.0), 4),
+            "cache_savings": round(pipeline_metrics.get("cache_savings", 0.0), 2),
+            "cache_hits": pipeline_metrics.get("cache_hits", 0),
+            "total_chunks": pipeline_metrics.get("total_chunks", 0),
         }
 
         job_manager.complete_job(job_id, f"job_{job_id}.mp3", metrics_dict)
         cer_str = f"{cer:.4f}" if cer is not None else "N/A"
-        logger.info(f"Background task completed for job {job_id}. RTF={rtf:.4f}, CER={cer_str}")
+        logger.info(f"Background task completed for job {job_id}. RTF={metrics_dict['rtf']:.4f}, CER={cer_str}")
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {str(e)}", exc_info=True)
         job_manager.fail_job(job_id, str(e))
@@ -117,7 +116,7 @@ def synthesize(request: SynthesizeRequest):
     """
     try:
         # Run the pipeline (chunk -> translate -> speak -> stitch)
-        audio_bytes = orchestrator.process(
+        audio_bytes, pipeline_metrics = orchestrator.process(
             text = request.text,
             target_lang = request.target_language,
             backend = request.backend,
@@ -141,7 +140,7 @@ def render_scene(request: SceneRequest):
     scene as audio/mpeg. The resolved cast is returned in the X-Cast header.
     """
     try:
-        audio_bytes, cast, transcript = orchestrator.process_scene(
+        audio_bytes, cast, transcript, metrics = orchestrator.process_scene(
             script=request.script,
             target_lang=request.target_language,
             translate=request.translate,
@@ -159,7 +158,11 @@ def render_scene(request: SceneRequest):
         return Response(
             content=audio_bytes,
             media_type="audio/mpeg",
-            headers={"X-Cast": json.dumps(cast), "X-Script": script_b64},
+            headers={
+                "X-Cast": json.dumps(cast),
+                "X-Script": script_b64,
+                "X-Metrics": json.dumps(metrics),
+            },
         )
     except HTTPException:
         raise
