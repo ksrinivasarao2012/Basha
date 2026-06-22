@@ -1,0 +1,13 @@
+# Keep the build context small & safe (never ship the venv or secrets).
+.venv/
+venv/
+.git/
+__pycache__/
+*.pyc
+*.egg-info/
+audio_cache/
+eval_output/
+samples/output/
+.pytest_cache/
+.env
+stitch_basha_multilingual_voice_studio/

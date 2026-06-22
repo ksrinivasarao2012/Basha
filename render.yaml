@@ -1,0 +1,10 @@
+# Optional: lets Render auto-configure the service ("Blueprint" deploy).
+# You can also just create a Web Service manually in the dashboard — Render will
+# detect the Dockerfile either way.
+services:
+  - type: web
+    name: basha
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
