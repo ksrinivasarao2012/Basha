@@ -34,3 +34,22 @@ eval_output/
 .DS_Store
 .idea/
 .vscode/
+
+# Personal / not part of the project
+JD
+image.png
+*.png
+GETTING_STARTED.md
+docs/architecture.md
+stitch_basha_multilingual_voice_studio/
+
+# Abandoned IndicTrans2 exploration
+experiment.ipynb
+download_flores.py
+
+# Older eval scripts (superseded by scripts/)
+evaluate_pipeline.py
+evaluate_comparison.py
+
+# Large external benchmark dataset (download instead of commit)
+samples/input/flores_evaluation_set.json
