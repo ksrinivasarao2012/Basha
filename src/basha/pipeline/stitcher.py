@@ -1,13 +1,17 @@
 import io
-import os
+import shutil
 from typing import List
 from pydub import AudioSegment
 
-# Explicitly point pydub and the system PATH to the winget FFmpeg install directory
-ffmpeg_dir = r"C:\Users\Srinivasa\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin"
-os.environ["PATH"] += os.pathsep + ffmpeg_dir
-AudioSegment.converter = os.path.join(ffmpeg_dir, "ffmpeg.exe")
-AudioSegment.ffprobe = os.path.join(ffmpeg_dir, "ffprobe.exe")
+# Locate ffmpeg/ffprobe WITHOUT hardcoding a machine-specific path. This works
+# everywhere they're on PATH: Windows (winget/choco), macOS (brew), Linux/Docker
+# (apt). A hardcoded path breaks the moment ffmpeg updates or the app is deployed.
+_ffmpeg = shutil.which("ffmpeg")
+_ffprobe = shutil.which("ffprobe")
+if _ffmpeg:
+    AudioSegment.converter = _ffmpeg
+if _ffprobe:
+    AudioSegment.ffprobe = _ffprobe
 
 
 
