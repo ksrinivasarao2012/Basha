@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "basha"
+version = "1.0.0"
+description = "Basha — Multilingual Text-to-Speech & Localization Service"
+requires-python = ">=3.10"
+
+# Tell setuptools the packages live under the src/ directory.
+[tool.setuptools.packages.find]
+where = ["src"]

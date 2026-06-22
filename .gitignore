@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Secrets
+.env
+
+# Generated audio / artifacts
+samples/output/*
+!samples/output/.gitkeep
+benchmarks/results/*
+!benchmarks/results/.gitkeep
+*.wav
+*.mp3
+
+# Caches
+.cache/
+.pytest_cache/
+
+# Generated runtime artifacts
+audio_cache/
+eval_output/
+
+# Model weights (huge — never commit)
+*.bin
+*.safetensors
+*.pt
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

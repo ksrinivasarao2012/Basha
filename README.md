@@ -1,0 +1,300 @@
+# Basha — Multilingual Text-to-Speech & Localization Service
+
+> A CPU-friendly, free-first service that turns English text into **translated, narrated audio**
+> across European and Indian languages — with a multi-voice "audio drama" mode and a built-in
+> quality-measurement layer.
+
+`Basha` (भाषा — "language / speech") takes a block of English text, translates it into a target
+language, and synthesizes natural narrated audio. It is built as a **service**, not a script:
+a FastAPI backend with a swappable TTS layer, an audio cache, async long-form jobs, structured
+logging, and a clean web UI on top. Everything in the default path runs **free and on CPU** —
+no GPU required.
+
+---
+
+## Table of contents
+
+1. [What it does](#what-it-does)
+2. [Features](#features)
+3. [Supported languages](#supported-languages)
+4. [Architecture](#architecture)
+5. [Project structure](#project-structure)
+6. [Tech stack](#tech-stack)
+7. [Getting started](#getting-started)
+8. [API reference](#api-reference)
+9. [How quality is measured](#how-quality-is-measured)
+10. [Design decisions](#design-decisions)
+11. [Future work](#future-work)
+
+---
+
+## What it does
+
+```
+text ──▶ Chunker ──▶ Translation ──▶ TTS ──▶ Stitcher ──▶ audio
+       (clause-aware)  (deep-translator)  (gTTS / Edge-TTS)  (seamless joins)
+```
+
+- **Input:** plain English text (single narration) or a `Speaker: line` script (audio drama).
+- **Localize:** translate to the target language via a swappable translation backend.
+- **Synthesize:** generate audio via a swappable TTS backend, with an optional **male / female**
+  neural voice (Edge-TTS).
+- **Chunk & stitch:** long text is split on clause boundaries, synthesized, and stitched back
+  with natural pauses.
+- **Measure:** every job reports objective performance (RTF), and the repo ships scripts to
+  measure TTS naturalness (MOS) and translation quality (chrF / BLEU).
+
+---
+
+## Features
+
+- 🌍 **Translate + narrate** English into 11+ languages.
+- 🗣️ **Male / female voice** selection (neural Edge-TTS voices).
+- 🎭 **Multi-voice audio drama** — write a `Name: dialogue` script; each character is
+  auto-assigned a distinct voice, the scene is translated, narrated, and stitched into one clip.
+  The **translated script** is shown alongside the audio.
+- 📝 **Translated-text display** — you always see exactly what is being spoken.
+- ⚡ **Audio cache** (SHA-256 keyed on text + language + voice) — identical requests are never
+  re-synthesized.
+- 🧵 **Async jobs** — long text is processed in the background with a job token you poll.
+- 📊 **Performance metrics** — Real-Time Factor (RTF) per job.
+- 🔌 **Swappable backends** — gTTS, Edge-TTS, and an optional Sarvam API backend behind one
+  interface.
+- 🖥️ **Web UI** served by the API itself (no separate server / CORS setup).
+
+---
+
+## Supported languages
+
+| Family   | Languages                                                  |
+|----------|------------------------------------------------------------|
+| Indian   | Telugu, Tamil, Kannada, Malayalam, Marathi, Hindi          |
+| European | German, French, Spanish, Italian, Portuguese, English      |
+
+Translation uses Google Translate (via `deep-translator`); speech uses gTTS (single voice per
+language) or Edge-TTS (multiple gendered neural voices). Sarvam is an optional premium backend
+that activates only when `SARVAM_API_KEY` is set.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    UI["Web UI / Streamlit / curl"] -->|HTTP| API["FastAPI service"]
+    API --> Orchestrator["Pipeline orchestrator"]
+    Orchestrator --> Chunker["Clause-aware chunker"]
+    Chunker --> Translate["Translation backend (deep-translator)"]
+    Translate --> Cache{"Audio cached?"}
+    Cache -->|yes| Stitch
+    Cache -->|no| TTS["TTS backend (gTTS / Edge-TTS)"]
+    TTS --> Stitch["Audio stitcher (seamless + pauses)"]
+    Stitch --> Out["MP3 + metrics"]
+```
+
+Two principles the design hangs on:
+
+1. **Everything behind an interface.** `TTSBackend` and `TranslateBackend` are abstract base
+   classes with multiple implementations chosen at runtime by a factory.
+2. **Free & CPU-first.** The default path needs no GPU, no paid key, and no model download.
+   Premium backends (Sarvam) are optional add-ons that degrade gracefully when absent.
+
+---
+
+## Project structure
+
+```
+basha/
+├── README.md
+├── GETTING_STARTED.md            # beginner-friendly build guide
+├── requirements.txt
+├── pyproject.toml                # editable install (pip install -e .)
+├── .env.example                  # optional SARVAM_API_KEY etc.
+│
+├── config/
+│   ├── config.yaml               # cache settings, defaults
+│   └── backends.yaml             # per-backend params
+│
+├── src/basha/
+│   ├── main.py                   # FastAPI app; serves the web UI at "/"
+│   ├── api/
+│   │   ├── routes.py             # /synthesize, /scene, /jobs, /cache, /health
+│   │   └── schemas.py            # Pydantic request/response models
+│   ├── core/
+│   │   ├── config.py             # settings loader (env + yaml)
+│   │   ├── logging.py            # structured logging with request IDs
+│   │   └── cache.py              # SHA-256 keyed audio cache
+│   ├── tts/
+│   │   ├── base.py               # TTSBackend ABC
+│   │   ├── gtts_backend.py       # gTTS (zero-setup fallback)
+│   │   ├── edge_tts.py           # Edge-TTS (neural, gendered voices)
+│   │   ├── voices.py             # VoiceManager: gender + per-speaker voice assignment
+│   │   ├── sarvam.py             # optional premium API backend
+│   │   └── factory.py            # picks backend by language + config
+│   ├── translation/
+│   │   ├── base.py               # TranslateBackend ABC
+│   │   └── deep_translator_backend.py
+│   ├── pipeline/
+│   │   ├── chunker.py            # clause-aware splitting
+│   │   ├── stitcher.py           # seamless concatenation + pauses
+│   │   └── orchestrator.py       # chunk → translate → tts → stitch (+ scene mode)
+│   ├── jobs/
+│   │   └── queue.py              # in-process async job submit/poll
+│   ├── script/
+│   │   └── parser.py             # Speaker: line script parsing helpers
+│   └── eval/
+│       ├── asr_roundtrip.py      # synth → ASR → text (intelligibility check)
+│       ├── metrics.py            # CER, WER (normalized), RTF
+│       └── benchmark.py          # multi-backend comparison helpers
+│
+├── client/
+│   ├── web/index.html            # primary web UI (HTML + Tailwind + vanilla JS)
+│   └── streamlit_app.py          # secondary Streamlit UI
+│
+├── scripts/
+│   ├── tts_eval.py               # TTS evaluation: MOS sheet + FLORES speed benchmark
+│   └── translation_eval.py       # translation chrF / BLEU benchmark (local CPU)
+│
+├── samples/                      # example inputs/outputs + FLORES eval set
+├── tests/                        # pytest: chunker, cache, eval, api, factory, jobs
+└── docs/
+    ├── architecture.md
+    └── PITFALLS.md               # the non-obvious bugs and how they were fixed
+```
+
+---
+
+## Tech stack
+
+| Layer            | Tool                                         | Cost / notes          |
+|------------------|----------------------------------------------|-----------------------|
+| API service      | FastAPI + Uvicorn                            | Free                  |
+| TTS (fallback)   | gTTS                                         | Free, single voice    |
+| TTS (neural)     | Edge-TTS                                      | Free, male/female     |
+| TTS (premium)    | Sarvam Bulbul API                            | Optional, needs key   |
+| Translation      | deep-translator (Google Translate)           | Free                  |
+| Audio            | pydub + ffmpeg                               | Free                  |
+| ASR (eval only)  | SpeechRecognition → Google STT               | Free, rate-limited    |
+| MT scoring       | sacrebleu (chrF / BLEU)                       | Free                  |
+| Web UI           | HTML + Tailwind (CDN) + vanilla JS           | Free, no build step   |
+| Tests            | pytest                                        | Free                  |
+
+> `gTTS` / `deep-translator` use Google's unofficial public endpoints — perfect as a free
+> default, but treated as a fallback, not a guaranteed production SLA.
+
+---
+
+## Getting started
+
+```bash
+# 1. Install (editable, so "import basha" works from anywhere)
+pip install -r requirements.txt
+pip install -e .
+
+# 2. (optional) premium backend key
+cp .env.example .env        # then add SARVAM_API_KEY if you have one
+
+# 3. Run the service (serves both the API and the web UI)
+uvicorn basha.main:app --app-dir src --reload --port 8000
+```
+
+Then open the web UI at:
+
+### **http://localhost:8000**
+
+The interactive API docs are at **http://localhost:8000/docs**.
+
+A secondary Streamlit client is also available:
+
+```bash
+streamlit run client/streamlit_app.py
+```
+
+> **ffmpeg** is required by `pydub` for audio stitching. Install it and ensure it's on PATH.
+
+---
+
+## API reference
+
+| Method | Endpoint              | Purpose                                                   |
+|--------|-----------------------|-----------------------------------------------------------|
+| GET    | `/`                   | The web UI                                                 |
+| POST   | `/synthesize`         | Synchronous: text → audio (short input)                   |
+| POST   | `/scene`              | Multi-voice audio drama → MP3 + `X-Cast` / `X-Script`     |
+| POST   | `/jobs`               | Submit a long-form job → returns `job_id`                 |
+| GET    | `/jobs/{job_id}`      | Poll job status + metrics                                  |
+| GET    | `/jobs/{job_id}/download` | Download the finished MP3                              |
+| GET    | `/cache/stats`        | Cached-file count + size                                   |
+| DELETE | `/cache`              | Clear the audio cache                                      |
+| GET    | `/health`             | Liveness + internet/cache checks                          |
+| GET    | `/docs`               | Auto-generated Swagger UI                                  |
+
+---
+
+## How quality is measured
+
+Measuring a **voice** and measuring a **translation** are different problems, so the project
+uses the right tool for each — and is honest about the limits of each number.
+
+### 1. Speed — RTF (automatic, reliable)
+**Real-Time Factor = synthesis time ÷ audio duration.** RTF < 1 means faster-than-real-time.
+Reported on every job. Fully trustworthy — the machine simply times itself.
+
+### 2. TTS intelligibility — ASR round-trip (sanity check only)
+Synthesize text → transcribe it back with speech recognition → compare. This confirms the
+audio is *real, recognizable speech*. **Caveat:** it uses Google STT to judge Google gTTS audio,
+so it is **vendor-biased** and only valid as a within-backend regression / sanity check — never
+as a cross-vendor quality ranking. The UI labels it accordingly and never reports a misleading
+"100% error" when ASR is simply rate-limited.
+
+### 3. TTS naturalness — MOS (the honest measure)
+No text metric can tell whether a voice *sounds human* — that requires **MOS** (Mean Opinion
+Score, 1–5 by ear). `scripts/tts_eval.py` generates clips, auto-measures RTF, and produces a
+rating sheet to fill in, then averages it:
+
+```bash
+python scripts/tts_eval.py generate     # make clips + rating sheet
+python scripts/tts_eval.py score        # average the 1–5 ratings into MOS
+python scripts/tts_eval.py flores --langs te --backends gtts --sample 100   # speed over FLORES
+```
+
+### 4. Translation quality — chrF / BLEU
+Translation is one-to-many (many valid phrasings), so it uses **chrF / BLEU**, not edit-distance.
+`scripts/translation_eval.py` scores the app's real translator against FLORES gold references:
+
+```bash
+python scripts/translation_eval.py --sample 25
+```
+
+> **chrF/BLEU measure surface overlap, not meaning.** A true meaning-aware metric (COMET) needs
+> a ~2 GB multilingual model — out of scope for a CPU / low-bandwidth setup; see *Future work*.
+
+---
+
+## Design decisions
+
+- **No LLM in the critical path.** The focus is synthesis + localization, not authoring.
+- **Free-first, premium-optional.** gTTS/Edge-TTS/deep-translator are the default; Sarvam is a
+  swappable add-on that activates only with a key.
+- **Graceful degradation.** Missing key or unsupported language narrows quality, never breaks
+  the service.
+- **Measure, and be honest about it.** Each metric is paired with what it does *not* prove —
+  vendor bias, surface-vs-meaning, intelligibility-vs-naturalness.
+
+---
+
+## Future work
+
+- **COMET / BERTScore** — meaning-aware translation scoring (needs a GPU / large download).
+- **Neural MOS prediction** (e.g. UTMOS) to automate naturalness scoring.
+- **Real job broker** (Redis/RQ) instead of in-process queue.
+- **Streaming synthesis** — return audio as it's generated.
+- **Voice cloning** for a consistent narrator across a series.
+
+---
+
+## Acknowledgements
+
+Built on **gTTS**, **Microsoft Edge-TTS**, **deep-translator**, **pydub/ffmpeg**,
+**SpeechRecognition**, **sacrebleu**, and **FastAPI**. Optional premium speech via **Sarvam AI**.
+FLORES evaluation data from the **NLLB / FLORES-200** project.

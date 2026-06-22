@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Basha - Multilingual Text-to-Speech &amp; Localization</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#111c2d",
+                        "secondary-fixed-dim": "#bac9d3",
+                        "primary": "#0061a4",
+                        "on-tertiary-fixed": "#2e1500",
+                        "tertiary-container": "#db7900",
+                        "secondary": "#526069",
+                        "background": "#f9f9ff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#001d36",
+                        "surface-tint": "#0061a4",
+                        "outline-variant": "#bfc7d4",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#e7eeff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#d8e3fb",
+                        "on-secondary-fixed-variant": "#3b4951",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#9ecaff",
+                        "surface-dim": "#cfdaf2",
+                        "surface-variant": "#d8e3fb",
+                        "surface-container-low": "#f0f3ff",
+                        "surface": "#f9f9ff",
+                        "secondary-fixed": "#d6e5ef",
+                        "tertiary": "#904d00",
+                        "surface-bright": "#f9f9ff",
+                        "outline": "#707883",
+                        "primary-fixed-dim": "#9ecaff",
+                        "surface-container-high": "#dee8ff",
+                        "inverse-surface": "#263143",
+                        "primary-fixed": "#d1e4ff",
+                        "on-primary-fixed-variant": "#00497d",
+                        "on-primary-container": "#002c4f",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#452200",
+                        "on-secondary-container": "#56656e",
+                        "on-surface": "#111c2d",
+                        "secondary-container": "#d3e2ed",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-tertiary-fixed-variant": "#6d3900",
+                        "primary-container": "#2196f3",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb77b",
+                        "on-surface-variant": "#404752",
+                        "on-secondary-fixed": "#0f1d25",
+                        "tertiary-fixed": "#ffdcc2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "unit": "4px",
+                        "container-padding": "24px",
+                        "gutter": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    },
+                    boxShadow: {
+                        'ambient': '0px 4px 12px rgba(30, 41, 59, 0.05)',
+                        'ambient-hover': '0px 8px 24px rgba(30, 41, 59, 0.08)'
+                    }
+                }
+            }
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .btn-primary {
+                @apply bg-primary-container text-on-primary rounded-xl px-4 py-2 font-label-md flex items-center justify-center gap-2 hover:opacity-90 transition-opacity;
+            }
+            .btn-secondary {
+                @apply bg-[#E3F2FD] text-primary-container rounded-xl px-4 py-2 font-label-md flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors;
+            }
+            .btn-outline {
+                @apply border border-outline-variant text-on-surface-variant rounded-xl px-4 py-2 font-label-md flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors;
+            }
+            .input-field {
+                @apply bg-surface border border-[#E3F2FD] rounded-xl px-4 py-3 text-on-surface focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 outline-none transition-all w-full;
+            }
+            .card {
+                @apply bg-surface-container-lowest rounded-xl shadow-ambient hover:shadow-ambient-hover transition-shadow p-container-padding;
+            }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim text-primary dark:text-primary-fixed shadow-sm w-full py-stack-md flex flex-col items-center justify-center z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-headline-md text-primary-container" style="font-variation-settings: 'FILL' 1;">mic</span>
+<h1 class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed">Basha</h1>
+</div>
+<p class="text-label-sm font-label-sm text-secondary mt-1">Multilingual Text-to-Speech &amp; Localization</p>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar (Desktop Only) -->
+<aside class="hidden md:flex flex-col bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant w-64 pt-20 h-full overflow-y-auto fixed left-0 top-0 z-0">
+<div class="px-6 mb-stack-lg">
+<h2 class="text-headline-md font-headline-md font-bold text-primary">Basha Engine</h2>
+<p class="text-label-sm font-label-sm text-secondary flex items-center gap-2 mt-2">
+<span class="w-2 h-2 rounded-full bg-green-500"></span> API Online
+                </p>
+</div>
+<nav class="flex-1 flex flex-col gap-1 px-4">
+<a class="flex items-center gap-3 py-3 text-primary dark:text-primary-fixed font-bold border-l-4 border-primary pl-4 hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-200" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="font-label-md text-label-md">System Status</span>
+</a>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant dark:text-surface-variant pl-4 hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-200" href="#">
+<span class="material-symbols-outlined">storage</span>
+<span class="font-label-md text-label-md">Cache Management</span>
+</a>
+</nav>
+<div class="p-6 mt-auto">
+<div class="bg-surface rounded-xl p-4 border border-outline-variant">
+<p class="font-label-md text-on-surface">Cache</p>
+<p class="font-body-sm text-secondary mt-1">12 files · 3.4 MB</p>
+<button class="btn-outline w-full mt-3">Clear Cache</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto">
+<div class="max-w-[720px] mx-auto space-y-stack-lg">
+<!-- Section 1: Standard TTS -->
+<section class="card space-y-stack-md">
+<div class="space-y-2">
+<label class="font-label-md text-on-surface flex items-center gap-2">
+                            English text to narrate
+                        </label>
+<textarea class="input-field min-h-[120px] resize-y" placeholder="Enter text here..."></textarea>
+</div>
+<div class="flex flex-col sm:flex-row gap-gutter">
+<div class="flex-1 space-y-2">
+<label class="font-label-sm text-secondary">Language</label>
+<div class="relative">
+<select class="input-field appearance-none pr-10">
+<option>English</option>
+<option>Telugu</option>
+<option>Hindi</option>
+<option>Tamil</option>
+<option>German</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex-1 space-y-2">
+<label class="font-label-sm text-secondary">Voice</label>
+<div class="relative">
+<select class="input-field appearance-none pr-10">
+<option>Female 1</option>
+<option>Male 1</option>
+<option>Female 2</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<button class="btn-primary w-full py-3">
+                        Generate Audio <span class="material-symbols-outlined">rocket_launch</span>
+</button>
+<!-- Audio Player Mockup -->
+<div class="bg-surface rounded-xl p-4 flex items-center gap-4 border border-[#E3F2FD]">
+<button class="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0 hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex-1 h-2 bg-[#E3F2FD] rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-1/3 rounded-full"></div>
+</div>
+<span class="font-label-sm text-secondary shrink-0">0:00 / 0:15</span>
+<button class="btn-secondary py-1.5 px-3">
+<span class="material-symbols-outlined text-[18px]">download</span> MP3
+                        </button>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-2 gap-gutter pt-2">
+<div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+<p class="font-label-sm text-secondary uppercase tracking-wide">Real-Time Factor</p>
+<p class="font-headline-md text-primary-container mt-1">0.47</p>
+</div>
+<div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+<p class="font-label-sm text-secondary uppercase tracking-wide">Speed</p>
+<p class="font-headline-md text-primary-container mt-1">2.1× faster</p>
+</div>
+</div>
+</section>
+<div class="h-[1px] bg-outline-variant/30 w-full"></div>
+<!-- Section 2: Audio Drama -->
+<section class="card space-y-stack-md">
+<div>
+<h3 class="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">theater_comedy</span>
+                            Multi-Voice Audio Drama
+                        </h3>
+<p class="text-body-sm font-body-sm text-secondary mt-1">Create engaging dialogues with multiple characters.</p>
+</div>
+<div class="space-y-2">
+<label class="font-label-md text-on-surface">Script (Name: Dialogue)</label>
+<textarea class="input-field min-h-[160px] font-mono text-sm resize-y" placeholder="Alex: Hello, how are you?
+Sam: I am doing well, thanks!"></textarea>
+</div>
+<div class="flex items-center justify-between gap-4">
+<div class="w-1/2 relative">
+<select class="input-field appearance-none pr-10 py-2">
+<option>Target: Hindi</option>
+<option>Target: English</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none">expand_more</span>
+</div>
+<label class="flex items-center gap-2 cursor-pointer">
+<input checked="" class="rounded text-primary-container focus:ring-primary-container border-outline-variant" type="checkbox"/>
+<span class="font-label-sm text-on-surface">Translate Script</span>
+</label>
+</div>
+<button class="btn-primary w-full py-3">
+                        Render Scene <span class="material-symbols-outlined">movie</span>
+</button>
+<!-- Cast List -->
+<div class="bg-surface rounded-xl p-4 border border-outline-variant space-y-3">
+<p class="font-label-sm text-secondary uppercase tracking-wide">Cast Assignment</p>
+<ul class="space-y-2">
+<li class="flex items-center justify-between font-body-sm bg-surface-container-low p-2 rounded-lg">
+<span class="font-medium">Ravi</span>
+<span class="material-symbols-outlined text-secondary text-[16px]">arrow_right_alt</span>
+<span class="text-primary-container bg-[#E3F2FD] px-2 py-0.5 rounded text-xs">hi-IN-MadhavNeural</span>
+</li>
+<li class="flex items-center justify-between font-body-sm bg-surface-container-low p-2 rounded-lg">
+<span class="font-medium">Priya</span>
+<span class="material-symbols-outlined text-secondary text-[16px]">arrow_right_alt</span>
+<span class="text-primary-container bg-[#E3F2FD] px-2 py-0.5 rounded text-xs">hi-IN-SwaraNeural</span>
+</li>
+</ul>
+</div>
+</section>
+</div>
+<!-- Footer -->
+<footer class="max-w-[720px] mx-auto py-stack-lg flex justify-between items-center mt-stack-lg border-t border-outline-variant">
+<p class="font-label-sm text-label-sm text-secondary dark:text-secondary-fixed-dim opacity-80">© 2024 Basha Localization</p>
+<div class="flex gap-4">
+<a class="font-label-sm text-label-sm text-secondary dark:text-secondary-fixed-dim hover:underline opacity-80 hover:opacity-100" href="#">Privacy</a>
+<a class="font-label-sm text-label-sm text-secondary dark:text-secondary-fixed-dim hover:underline opacity-80 hover:opacity-100" href="#">Terms</a>
+<a class="font-label-sm text-label-sm text-secondary dark:text-secondary-fixed-dim hover:underline opacity-80 hover:opacity-100" href="#">API Docs</a>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

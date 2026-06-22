@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Basha - Multilingual Text-to-Speech &amp; Localization</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "on-background": "#111c2d",
+                    "primary": "#0061a4",
+                    "secondary": "#526069",
+                    "background": "#f9f9ff",
+                    "on-primary": "#ffffff",
+                    "surface": "#f9f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#f0f3ff",
+                    "surface-container": "#e7eeff",
+                    "surface-container-high": "#dee8ff",
+                    "primary-container": "#2196f3",
+                    "on-surface": "#111c2d",
+                    "on-surface-variant": "#404752",
+                    "outline-variant": "#bfc7d4",
+                    "tertiary-container": "#db7900",
+                    "inverse-surface": "#263143",
+                    "surface-variant": "#d8e3fb",
+                    "secondary-fixed-dim": "#bac9d3",
+                    "primary-fixed": "#d1e4ff",
+                },
+                borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+                spacing: { "stack-md": "16px", "container-padding": "24px", "gutter": "16px", "stack-sm": "8px", "stack-lg": "32px" },
+                fontFamily: { sans: ["Inter", "sans-serif"] },
+                fontSize: {
+                    "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                    "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                    "label-md": ["14px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "600" }],
+                    "label-sm": ["12px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "500" }],
+                    "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                },
+                boxShadow: { 'ambient': '0px 4px 12px rgba(30,41,59,0.05)', 'ambient-hover': '0px 8px 24px rgba(30,41,59,0.08)' }
+            }
+        }
+    }
+</script>
+<style type="text/tailwindcss">
+    @layer utilities {
+        .btn-primary { @apply bg-primary-container text-on-primary rounded-xl px-4 py-2 font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed; }
+        .btn-secondary { @apply bg-[#E3F2FD] text-primary-container rounded-xl px-4 py-2 font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors; }
+        .btn-outline { @apply border border-outline-variant text-on-surface-variant rounded-xl px-4 py-2 font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors; }
+        .input-field { @apply bg-surface border border-[#E3F2FD] rounded-xl px-4 py-3 text-on-surface focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 outline-none transition-all w-full; }
+        .card { @apply bg-surface-container-lowest rounded-xl shadow-ambient hover:shadow-ambient-hover transition-shadow p-container-padding; }
+    }
+    body { font-family: Inter, sans-serif; }
+</style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+
+<!-- Header -->
+<header class="bg-surface text-primary shadow-sm w-full py-stack-md flex flex-col items-center justify-center z-10">
+  <div class="flex items-center gap-2">
+    <span class="material-symbols-outlined text-primary-container" style="font-variation-settings:'FILL' 1;">mic</span>
+    <h1 class="text-headline-md font-bold text-primary">Basha</h1>
+  </div>
+  <p class="text-label-sm text-secondary mt-1">Multilingual Text-to-Speech &amp; Localization</p>
+</header>
+
+<div class="flex flex-1">
+<!-- Sidebar -->
+<aside class="hidden md:flex flex-col bg-surface-container-low border-r border-outline-variant w-64 pt-20 h-screen overflow-y-auto fixed left-0 top-0 z-0">
+  <div class="px-6 mb-stack-lg">
+    <h2 class="text-headline-md font-bold text-primary">Basha Engine</h2>
+    <p class="text-label-sm text-secondary flex items-center gap-2 mt-2">
+      <span id="status-dot" class="w-2 h-2 rounded-full bg-gray-300"></span>
+      <span id="status-text">Checking…</span>
+    </p>
+  </div>
+  <nav class="flex-1 flex flex-col gap-1 px-4">
+    <a class="flex items-center gap-3 py-3 text-primary font-bold border-l-4 border-primary pl-4" href="#">
+      <span class="material-symbols-outlined">sensors</span><span class="text-label-md">System Status</span>
+    </a>
+  </nav>
+  <div class="p-6 mt-auto">
+    <div class="bg-surface rounded-xl p-4 border border-outline-variant">
+      <p class="text-label-md text-on-surface">Cache</p>
+      <p id="cache-info" class="text-body-sm text-secondary mt-1">…</p>
+      <button id="clear-cache-btn" class="btn-outline w-full mt-3">Clear Cache</button>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="flex-1 md:ml-64 p-4 md:p-8">
+  <div class="max-w-[720px] mx-auto space-y-stack-lg">
+
+    <!-- Section 1: Single narration -->
+    <section class="card space-y-stack-md">
+      <div class="space-y-2">
+        <label class="text-label-md text-on-surface">English text to narrate</label>
+        <textarea id="tts-text" class="input-field min-h-[120px] resize-y" placeholder="Enter text here…">Basha turns written words into natural speech in many languages.</textarea>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-gutter">
+        <div class="flex-1 space-y-2">
+          <label class="text-label-sm text-secondary">Language</label>
+          <div class="relative">
+            <select id="tts-lang" class="input-field appearance-none pr-10"></select>
+            <span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">expand_more</span>
+          </div>
+        </div>
+        <div class="flex-1 space-y-2">
+          <label class="text-label-sm text-secondary">Voice</label>
+          <div class="relative">
+            <select id="tts-gender" class="input-field appearance-none pr-10">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+      <button id="generate-btn" class="btn-primary w-full py-3">Generate Audio <span class="material-symbols-outlined">rocket_launch</span></button>
+
+      <p id="tts-status" class="text-body-sm text-secondary hidden"></p>
+
+      <!-- Audio + download -->
+      <div id="tts-result" class="hidden space-y-stack-md">
+        <div class="bg-surface rounded-xl p-4 flex items-center gap-4 border border-[#E3F2FD]">
+          <audio id="tts-audio" controls class="w-full"></audio>
+        </div>
+        <div class="bg-[#E3F2FD]/40 rounded-xl p-4 border border-[#E3F2FD]">
+          <p class="text-label-sm text-secondary uppercase tracking-wide mb-1">Translated text</p>
+          <p id="tts-translation" class="text-body-md text-on-surface leading-relaxed"></p>
+        </div>
+        <a id="tts-download" class="btn-secondary w-max" download>
+          <span class="material-symbols-outlined text-[18px]">download</span> Download MP3
+        </a>
+        <div class="grid grid-cols-2 gap-gutter pt-2">
+          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Real-Time Factor</p>
+            <p id="stat-rtf" class="text-headline-md text-primary-container mt-1">—</p>
+          </div>
+          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
+            <p class="text-label-sm text-secondary uppercase tracking-wide">Speed</p>
+            <p id="stat-speed" class="text-headline-md text-primary-container mt-1">—</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="h-px bg-outline-variant/30 w-full"></div>
+
+    <!-- Section 2: Audio drama -->
+    <section class="card space-y-stack-md">
+      <div>
+        <h3 class="text-headline-md text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings:'FILL' 1;">theater_comedy</span>
+          Multi-Voice Audio Drama
+        </h3>
+        <p class="text-body-sm text-secondary mt-1">Create engaging dialogues with multiple characters.</p>
+      </div>
+      <div class="space-y-2">
+        <label class="text-label-md text-on-surface">Script (Name: Dialogue)</label>
+        <textarea id="scene-script" class="input-field min-h-[160px] font-mono text-sm resize-y">Ravi: Meena, have you heard the news about the festival?
+Meena: Yes! I cannot wait. Are you coming with us?
+Ravi: Of course. Let us leave early in the morning.
+Narrator: And so their journey began.</textarea>
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="w-1/2 relative">
+          <select id="scene-lang" class="input-field appearance-none pr-10 py-2"></select>
+          <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none">expand_more</span>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input id="scene-translate" checked type="checkbox" class="rounded text-primary-container focus:ring-primary-container border-outline-variant"/>
+          <span class="text-label-sm text-on-surface">Translate Script</span>
+        </label>
+      </div>
+      <button id="scene-btn" class="btn-primary w-full py-3">Render Scene <span class="material-symbols-outlined">movie</span></button>
+
+      <p id="scene-status" class="text-body-sm text-secondary hidden"></p>
+
+      <div id="scene-result" class="hidden space-y-stack-md">
+        <div class="bg-surface rounded-xl p-4 border border-[#E3F2FD]">
+          <audio id="scene-audio" controls class="w-full"></audio>
+        </div>
+        <div id="scene-script-box" class="bg-[#E3F2FD]/40 rounded-xl p-4 border border-[#E3F2FD] space-y-2">
+          <p class="text-label-sm text-secondary uppercase tracking-wide">Translated script</p>
+          <ul id="scene-transcript" class="space-y-1"></ul>
+        </div>
+        <div class="bg-surface rounded-xl p-4 border border-outline-variant space-y-3">
+          <p class="text-label-sm text-secondary uppercase tracking-wide">Cast Assignment</p>
+          <ul id="cast-list" class="space-y-2"></ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="max-w-[720px] mx-auto py-stack-lg flex justify-between items-center mt-stack-lg border-t border-outline-variant">
+    <p class="text-label-sm text-secondary opacity-80">© Basha Localization</p>
+    <div class="flex gap-4">
+      <a class="text-label-sm text-secondary hover:underline opacity-80" href="/docs">API Docs</a>
+    </div>
+  </footer>
+</main>
+</div>
+
+<script>
+const LANGS = {
+  "English": "en", "Telugu (తెలుగు)": "te", "Hindi (हिन्दी)": "hi", "Tamil (தமிழ்)": "ta",
+  "Kannada (ಕನ್ನಡ)": "kn", "Malayalam (മലയാളം)": "ml", "Marathi (मराठी)": "mr",
+  "German (Deutsch)": "de", "French (Français)": "fr", "Spanish (Español)": "es",
+  "Italian (Italiano)": "it", "Portuguese (Português)": "pt"
+};
+
+function fillLangs(sel, defaultCode) {
+  for (const [name, code] of Object.entries(LANGS)) {
+    const o = document.createElement("option");
+    o.value = code; o.textContent = name;
+    if (code === defaultCode) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+fillLangs(document.getElementById("tts-lang"), "te");
+fillLangs(document.getElementById("scene-lang"), "hi");
+
+// ---- Health + cache ----
+async function checkHealth() {
+  const dot = document.getElementById("status-dot"), txt = document.getElementById("status-text");
+  try {
+    const r = await fetch("/health");
+    const d = await r.json();
+    if (d.status === "healthy") { dot.className = "w-2 h-2 rounded-full bg-green-500"; txt.textContent = "API Online"; }
+    else { dot.className = "w-2 h-2 rounded-full bg-yellow-500"; txt.textContent = "API Degraded"; }
+  } catch { dot.className = "w-2 h-2 rounded-full bg-red-500"; txt.textContent = "API Offline"; }
+}
+async function loadCache() {
+  try {
+    const d = await (await fetch("/cache/stats")).json();
+    document.getElementById("cache-info").textContent = `${d.cached_files} files · ${d.total_mb} MB`;
+  } catch { document.getElementById("cache-info").textContent = "unavailable"; }
+}
+document.getElementById("clear-cache-btn").onclick = async () => {
+  await fetch("/cache", { method: "DELETE" });
+  loadCache();
+};
+checkHealth(); loadCache(); setInterval(checkHealth, 15000);
+
+// ---- Generate Audio (job queue) ----
+document.getElementById("generate-btn").onclick = async () => {
+  const text = document.getElementById("tts-text").value.trim();
+  const btn = document.getElementById("generate-btn");
+  const status = document.getElementById("tts-status");
+  const result = document.getElementById("tts-result");
+  if (!text) { alert("Please enter some text."); return; }
+
+  btn.disabled = true; status.classList.remove("hidden"); result.classList.add("hidden");
+  status.textContent = "Submitting to synthesis queue…";
+
+  try {
+    const submit = await fetch("/jobs", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        target_language: document.getElementById("tts-lang").value,
+        gender: document.getElementById("tts-gender").value
+      })
+    });
+    const job = await submit.json();
+    const id = job.job_id;
+
+    while (true) {
+      await new Promise(r => setTimeout(r, 700));
+      const s = await (await fetch(`/jobs/${id}`)).json();
+      if (s.status === "processing") status.textContent = "Translating, synthesizing & stitching…";
+      else if (s.status === "completed") {
+        status.textContent = "Done!";
+        const blob = await (await fetch(s.download_url)).blob();
+        const url = URL.createObjectURL(blob);
+        document.getElementById("tts-audio").src = url;
+        const dl = document.getElementById("tts-download");
+        dl.href = url; dl.download = `basha_${document.getElementById("tts-lang").value}.mp3`;
+        const rtf = s.metrics ? s.metrics.rtf : null;
+        document.getElementById("stat-rtf").textContent = rtf ? rtf.toFixed(3) : "—";
+        document.getElementById("stat-speed").textContent = rtf ? (1/rtf).toFixed(1) + "× faster" : "—";
+        document.getElementById("tts-translation").textContent =
+          (s.metrics && s.metrics.translated_text) ? s.metrics.translated_text : "(not available)";
+        result.classList.remove("hidden"); status.classList.add("hidden");
+        loadCache();
+        break;
+      } else if (s.status === "failed") { status.textContent = "Failed: " + (s.error || "unknown"); break; }
+    }
+  } catch (e) { status.textContent = "Error: " + e.message; }
+  finally { btn.disabled = false; }
+};
+
+// ---- Render Scene ----
+document.getElementById("scene-btn").onclick = async () => {
+  const script = document.getElementById("scene-script").value.trim();
+  const btn = document.getElementById("scene-btn");
+  const status = document.getElementById("scene-status");
+  const result = document.getElementById("scene-result");
+  if (!script) { alert("Please write a script."); return; }
+
+  btn.disabled = true; status.classList.remove("hidden"); result.classList.add("hidden");
+  status.textContent = "Casting voices, translating & stitching…";
+
+  try {
+    const resp = await fetch("/scene", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        script,
+        target_language: document.getElementById("scene-lang").value,
+        translate: document.getElementById("scene-translate").checked
+      })
+    });
+    if (!resp.ok) { status.textContent = "Error: " + (await resp.text()); return; }
+    const cast = JSON.parse(resp.headers.get("X-Cast") || "{}");
+    const blob = await resp.blob();
+    document.getElementById("scene-audio").src = URL.createObjectURL(blob);
+
+    // Decode the base64 UTF-8 translated script and render it line by line.
+    const tul = document.getElementById("scene-transcript");
+    tul.innerHTML = "";
+    const b64 = resp.headers.get("X-Script");
+    if (b64) {
+      try {
+        const transcript = JSON.parse(decodeURIComponent(escape(atob(b64))));
+        for (const line of transcript) {
+          const li = document.createElement("li");
+          li.className = "text-body-sm text-on-surface";
+          li.innerHTML = `<span class="font-semibold text-primary-container">${line.speaker}:</span> ${line.text}`;
+          tul.appendChild(li);
+        }
+        document.getElementById("scene-script-box").classList.remove("hidden");
+      } catch (e) { document.getElementById("scene-script-box").classList.add("hidden"); }
+    }
+
+    const ul = document.getElementById("cast-list");
+    ul.innerHTML = "";
+    for (const [name, voice] of Object.entries(cast)) {
+      const li = document.createElement("li");
+      li.className = "flex items-center justify-between text-body-sm bg-surface-container-low p-2 rounded-lg";
+      li.innerHTML = `<span class="font-medium">${name}</span>
+        <span class="material-symbols-outlined text-secondary text-[16px]">arrow_right_alt</span>
+        <span class="text-primary-container bg-[#E3F2FD] px-2 py-0.5 rounded text-xs">${voice}</span>`;
+      ul.appendChild(li);
+    }
+    result.classList.remove("hidden"); status.classList.add("hidden");
+    loadCache();
+  } catch (e) { status.textContent = "Error: " + e.message; }
+  finally { btn.disabled = false; }
+};
+</script>
+</body>
+</html>

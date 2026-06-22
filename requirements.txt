@@ -1,0 +1,61 @@
+# ============================================================================
+#  Basha — requirements.txt
+# ----------------------------------------------------------------------------
+#  INSTALL ORDER MATTERS for a beginner. Two tiers:
+#
+#  TIER 1 (START HERE — works on ANY laptop, no GPU, ~2 min install):
+#     pip install fastapi uvicorn pydantic pydantic-settings python-multipart \
+#                 streamlit gtts deep-translator pydub soundfile requests pyyaml
+#
+#  TIER 2 (LATER — heavy local AI models, large downloads, ideally a GPU):
+#     install only when you reach the "upgrade backend" step in GETTING_STARTED.md
+# ============================================================================
+
+# ---- TIER 1: core service (install these first) ----------------------------
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pydantic-settings>=2.2
+python-multipart>=0.0.9        # lets the API accept .txt file uploads
+pyyaml>=6.0                    # reads config/*.yaml
+
+# ---- TIER 1: the demo UI ---------------------------------------------------
+streamlit>=1.33
+
+# ---- TIER 1: free, zero-setup TTS + translation (the MVP path) -------------
+gtts>=2.5                      # free text-to-speech (needs internet, no key)
+deep-translator>=1.11          # free translation (needs internet, no key)
+
+# ---- TIER 1: audio handling ------------------------------------------------
+pydub>=0.25                    # stitch/concatenate audio clips (needs ffmpeg)
+soundfile>=0.12                # read/write wav files
+numpy>=1.26
+
+# ---- TIER 1: misc ----------------------------------------------------------
+requests>=2.31                 # calling external APIs (e.g. Sarvam, optional)
+python-dotenv>=1.0             # loads .env secrets
+
+pytest>=8.0
+httpx>=0.27                    # used by FastAPI's TestClient
+speechrecognition>=3.10.0      # free speech-to-text API for evaluation
+
+# ---- TIER 1: Notebook & Evaluation -----------------------------------------
+notebook>=7.0
+ipykernel>=6.0
+pandas>=2.0
+matplotlib>=3.8
+jinja2>=3.1
+
+
+# ============================================================================
+# ---- TIER 2: heavy local models — GPU-ORIENTED. You have NO GPU, so SKIP all
+#               of these for now. They are big (GBs) and run painfully slowly
+#               (or not at all) on CPU. Listed only as documented "future work".
+# ============================================================================
+# torch>=2.2                   # deep-learning runtime (install the right CUDA build)
+# transformers>=4.40           # HuggingFace models (Parler-TTS, NLLB, Whisper)
+# TTS>=0.22                    # Coqui XTTS-v2 (European voices + cloning)
+# parler-tts                   # AI4Bharat Indic Parler-TTS (install from GitHub)
+# IndicTransToolkit            # AI4Bharat IndicTrans2 (EN <-> Indian languages)
+# faster-whisper>=1.0          # ASR for the evaluation gate (round-trip CER)
+# jiwer>=3.0                   # computes CER / WER for the eval gate
