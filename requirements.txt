@@ -26,7 +26,6 @@ streamlit>=1.33
 gtts>=2.5                      # free text-to-speech (needs internet, no key)
 edge-tts>=7.0                  # free neural TTS, male/female voices (multi-voice scenes)
 deep-translator>=1.11          # free translation (needs internet, no key)
-sacrebleu>=2.4                 # chrF / BLEU scoring for the translation benchmark
 sentence-transformers>=2.5.0   # semantic similarity evaluation (BERT model)
 
 # ---- TIER 1: audio handling ------------------------------------------------

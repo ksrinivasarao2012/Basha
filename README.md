@@ -42,7 +42,7 @@ text ──▶ Chunker ──▶ Translation ──▶ TTS ──▶ Stitcher �
 - **Chunk & stitch:** long text is split on clause boundaries, synthesized, and stitched back
   with natural pauses.
 - **Measure:** every job reports objective performance (RTF), and the repo ships scripts to
-  measure TTS naturalness (MOS) and translation quality (chrF / BLEU).
+  measure TTS intelligibility (multilingual BERT semantic similarity) and naturalness (MOS).
 
 ---
 
@@ -147,7 +147,6 @@ basha/
 │
 ├── scripts/
 │   ├── tts_eval.py               # TTS evaluation: speed and reliability benchmark
-│   ├── translation_eval.py       # translation chrF / BLEU benchmark (local CPU)
 │   └── asr_semantic_eval.py      # synth → ASR → BERT semantic-similarity + RTF (CSV report)
 │
 ├── samples/                      # example inputs/outputs + FLORES eval set
@@ -168,7 +167,7 @@ basha/
 | Translation      | deep-translator (Google Translate)           | Free                  |
 | Audio            | pydub + ffmpeg                               | Free                  |
 | ASR (eval only)  | SpeechRecognition → Google STT               | Free, rate-limited    |
-| MT scoring       | sacrebleu (chrF / BLEU)                       | Free                  |
+| Eval scoring     | sentence-transformers (multilingual BERT)    | Free                  |
 | Web UI           | HTML + Tailwind (CDN) + vanilla JS           | Free, no build step   |
 | Tests            | pytest                                        | Free                  |
 
@@ -258,17 +257,6 @@ python scripts/asr_semantic_eval.py --langs hi te de ta kn mr fr es it --sample 
 > cp samples/input/flores_evaluation_set.json .
 > ```
 
-### 3. Translation quality — chrF / BLEU
-Translation is one-to-many (many valid phrasings), so it uses **chrF / BLEU**, not edit-distance.
-`scripts/translation_eval.py` scores the app's real translator against FLORES gold references:
-
-```bash
-python scripts/translation_eval.py --sample 25
-```
-
-> **chrF/BLEU measure surface overlap, not meaning.** A true meaning-aware metric (COMET) needs
-> a ~2 GB multilingual model — out of scope for a CPU / low-bandwidth setup; see *Future work*.
-
 ---
 
 ## Design decisions
@@ -296,5 +284,5 @@ python scripts/translation_eval.py --sample 25
 ## Acknowledgements
 
 Built on **gTTS**, **Microsoft Edge-TTS**, **deep-translator**, **pydub/ffmpeg**,
-**SpeechRecognition**, **sacrebleu**, and **FastAPI**. Optional premium speech via **Sarvam AI**.
+**SpeechRecognition**, **sentence-transformers**, and **FastAPI**. Optional premium speech via **Sarvam AI**.
 FLORES evaluation data from the **NLLB / FLORES-200** project.
