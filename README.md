@@ -228,7 +228,32 @@ Reported on every job. Fully trustworthy — the machine simply times itself.
 
 ### 2. TTS intelligibility & meaning — ASR round-trip (semantic similarity)
 Synthesize text → transcribe it back with speech recognition → compare. The project uses a **multilingual BERT-based sentence transformer** (`paraphrase-multilingual-MiniLM-L12-v2`) to calculate the semantic similarity (0.0 to 1.0) between the expected translation and the ASR transcription. This avoids the rigidity of CER/WER string-matching metrics, which penalize acceptable speech for minor punctuation, homophone, or spelling variations.
-> **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the current working directory. Before running the `translation_eval.py`, copy the file from `samples/input/flores_evaluation_set.json` to the project root:
+
+**Results** — synthesize → ASR → BERT similarity over FLORES gold sentences (`scripts/asr_semantic_eval.py`, 10 sentences/language, CPU):
+
+| Language        | Code | Success | Semantic similarity | RTF   |
+|-----------------|------|--------:|--------------------:|------:|
+| Spanish         | es   |    100% |              0.9247 | 0.130 |
+| German          | de   |    100% |              0.9103 | 0.112 |
+| Italian         | it   |    100% |              0.9034 | 0.132 |
+| French          | fr   |    100% |              0.8757 | 0.141 |
+| Hindi           | hi   |    100% |              0.8728 | 0.139 |
+| Kannada         | kn   |    100% |              0.8582 | 0.135 |
+| Marathi         | mr   |    100% |              0.8286 | 0.104 |
+| Telugu          | te   |    100% |              0.8143 | 0.089 |
+| Tamil           | ta   |    100% |              0.8033 | 0.133 |
+
+Every language transcribes back at **0.80–0.92 semantic similarity** — the meaning survives synthesis intact — at an **RTF of ~0.1** (≈10× faster than real-time) on a CPU. European languages score highest and Indic languages trail slightly, exactly as expected (Indic ASR is harder), which is a good sign the numbers reflect reality rather than noise.
+
+> **What this does and doesn't prove.** This measures **intelligibility / meaning preservation**, not **naturalness** — it confirms the words come through clearly, not that the voice sounds human (that's MOS; see *Design decisions*). It's also a within-vendor check: gTTS (Google) audio judged by Google STT, so read it as a sanity signal, not an absolute naturalness ranking.
+
+Reproduce it:
+```bash
+# copy the FLORES gold set to the project root first (see note below)
+python scripts/asr_semantic_eval.py --langs hi te de ta kn mr fr es it --sample 10
+```
+
+> **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the current working directory. Before running them, copy the file from `samples/input/flores_evaluation_set.json` to the project root:
 > ```bash
 > cp samples/input/flores_evaluation_set.json .
 > ```
