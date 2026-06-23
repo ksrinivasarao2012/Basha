@@ -235,21 +235,23 @@ Synthesize text → transcribe it back with speech recognition → compare. The 
 | Spanish         | es   |    100% |              0.9247 | 0.130 |
 | German          | de   |    100% |              0.9103 | 0.112 |
 | Italian         | it   |    100% |              0.9034 | 0.132 |
+| Portuguese      | pt   |    100% |              0.8818 | 0.112 |
 | French          | fr   |    100% |              0.8757 | 0.141 |
 | Hindi           | hi   |    100% |              0.8728 | 0.139 |
 | Kannada         | kn   |    100% |              0.8582 | 0.135 |
 | Marathi         | mr   |    100% |              0.8286 | 0.104 |
 | Telugu          | te   |    100% |              0.8143 | 0.089 |
+| Malayalam       | ml   |    100% |              0.8080 | 0.139 |
 | Tamil           | ta   |    100% |              0.8033 | 0.133 |
 
-Every language transcribes back at **0.80–0.92 semantic similarity** — the meaning survives synthesis intact — at an **RTF of ~0.1** (≈10× faster than real-time) on a CPU. European languages score highest and Indic languages trail slightly, exactly as expected (Indic ASR is harder), which is a good sign the numbers reflect reality rather than noise.
+All **11 languages** transcribe back at **0.80–0.92 semantic similarity** — the meaning survives synthesis intact — at an **RTF of ~0.1** (≈10× faster than real-time) on a CPU. European languages score highest and Indic languages trail slightly, exactly as expected (Indic ASR is harder), which is a good sign the numbers reflect reality rather than noise.
 
 > **What this does and doesn't prove.** This measures **intelligibility / meaning preservation**, not **naturalness** — it confirms the words come through clearly, not that the voice sounds human (that's MOS; see *Design decisions*). It's also a within-vendor check: gTTS (Google) audio judged by Google STT, so read it as a sanity signal, not an absolute naturalness ranking.
 
 Reproduce it:
 ```bash
 # copy the FLORES gold set to the project root first (see note below)
-python scripts/asr_semantic_eval.py --langs hi te de ta kn mr fr es it --sample 10
+python scripts/asr_semantic_eval.py --langs hi te de ta kn mr fr es it pt ml --sample 10
 ```
 
 > **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the current working directory. Before running them, copy the file from `samples/input/flores_evaluation_set.json` to the project root:
