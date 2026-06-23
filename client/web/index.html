@@ -57,6 +57,9 @@
         .card { @apply bg-surface-container-lowest rounded-xl shadow-ambient hover:shadow-ambient-hover transition-shadow p-container-padding; }
     }
     body { font-family: Inter, sans-serif; }
+    /* Remove the browser's native dropdown arrow so only the custom chevron shows (no double arrow). */
+    select { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none; }
+    select::-ms-expand { display: none; }
 </style>
 </head>
 <body class="bg-background text-on-background min-h-screen flex flex-col antialiased">

@@ -37,6 +37,8 @@ eval_output/
 JD
 image.png
 *.png
+*.pdf
+Resume*.pdf
 GETTING_STARTED.md
 stitch_basha_multilingual_voice_studio/
 
