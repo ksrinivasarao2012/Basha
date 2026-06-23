@@ -147,11 +147,12 @@ basha/
 │   └── web/index.html            # web UI (HTML + Tailwind + vanilla JS)
 │
 ├── scripts/
-│   ├── tts_eval.py               # TTS evaluation: MOS sheet + FLORES speed benchmark
-│   └── translation_eval.py       # translation chrF / BLEU benchmark (local CPU)
+│   ├── tts_eval.py               # TTS evaluation: speed and reliability benchmark
+│   ├── translation_eval.py       # translation chrF / BLEU benchmark (local CPU)
+│   └── asr_semantic_eval.py      # synth → ASR → BERT semantic-similarity + RTF (CSV report)
 │
 ├── samples/                      # example inputs/outputs + FLORES eval set
-├── tests/                        # pytest: chunker, cache, eval, api, factory, jobs
+├── tests/                        # pytest: chunker, cache, eval, api, factory, jobs, parser/voices
 └── docs/
     ├── architecture.md
     └── PITFALLS.md               # the non-obvious bugs and how they were fixed
@@ -229,25 +230,12 @@ Reported on every job. Fully trustworthy — the machine simply times itself.
 
 ### 2. TTS intelligibility & meaning — ASR round-trip (semantic similarity)
 Synthesize text → transcribe it back with speech recognition → compare. The project uses a **multilingual BERT-based sentence transformer** (`paraphrase-multilingual-MiniLM-L12-v2`) to calculate the semantic similarity (0.0 to 1.0) between the expected translation and the ASR transcription. This avoids the rigidity of CER/WER string-matching metrics, which penalize acceptable speech for minor punctuation, homophone, or spelling variations.
-
-
-### 3. TTS naturalness — MOS (the honest measure)
-No text metric can tell whether a voice *sounds human* — that requires **MOS** (Mean Opinion
-Score, 1–5 by ear). `scripts/tts_eval.py` generates clips, auto-measures RTF, and produces a
-rating sheet to fill in, then averages it:
-
-```bash
-python scripts/tts_eval.py generate     # make clips + rating sheet
-python scripts/tts_eval.py score        # average the 1–5 ratings into MOS
-python scripts/tts_eval.py flores --langs te --backends gtts --sample 100   # speed over FLORES
-```
-
-> **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the current working directory. Before running the `flores` benchmark or `translation_eval.py`, copy the file from `samples/input/flores_evaluation_set.json` to the project root:
+> **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the current working directory. Before running the `translation_eval.py`, copy the file from `samples/input/flores_evaluation_set.json` to the project root:
 > ```bash
 > cp samples/input/flores_evaluation_set.json .
 > ```
 
-### 4. Translation quality — chrF / BLEU
+### 3. Translation quality — chrF / BLEU
 Translation is one-to-many (many valid phrasings), so it uses **chrF / BLEU**, not edit-distance.
 `scripts/translation_eval.py` scores the app's real translator against FLORES gold references:
 
