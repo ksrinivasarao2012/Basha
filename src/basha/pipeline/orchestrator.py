@@ -143,9 +143,11 @@ class PipelineOrchestrator:
         from pydub import AudioSegment
 
         if not script.strip():
-            return b'', {}, [], {"synthesis_time": 0.0, "duration": 0.0, "rtf": 0.0}
+            return b'', {}, [], {
+                "translation_time": 0.0, "synthesis_time": 0.0, "duration": 0.0,
+                "rtf": 0.0, "cache_hits": 0, "total_chunks": 0, "cache_savings": 0.0,
+            }
 
-        start_time = time.perf_counter()
         lines = parse_dialogue(script)
 
         # Validate any user-supplied map against the live voice list, then build
@@ -158,6 +160,12 @@ class PipelineOrchestrator:
         audio_clips: List[bytes] = []
         transcript: List[Dict[str, str]] = []   # speaker + (translated) line, for the UI
 
+        # Track translation and synthesis time separately so the UI can show an
+        # honest "Translate | Speak" breakdown (not one lumped-together number).
+        translation_time = 0.0
+        synthesis_time = 0.0
+        cache_hits = 0
+
         with LogContext("basha.pipeline", "render_scene",
                         {"target_lang": target_lang, "lines": len(lines), "translate": translate}):
             for idx, (speaker, utterance) in enumerate(lines):
@@ -169,7 +177,9 @@ class PipelineOrchestrator:
 
                 # Optionally localize the line.
                 if translate and target_lang.lower() != "en":
+                    t0 = time.perf_counter()
                     utterance = self.translator.translate(utterance, target_lang)
+                    translation_time += time.perf_counter() - t0
 
                 transcript.append({"speaker": speaker_key, "text": utterance})
 
@@ -177,16 +187,18 @@ class PipelineOrchestrator:
                 cached = self.cache.get(utterance, target_lang, voice=voice_id, backend="EdgeTTSBackend")
                 if cached is not None:
                     self.logger.info(f"Scene cache hit for line {idx} ({speaker_key})")
+                    cache_hits += 1
                     audio_clips.append(cached)
                 else:
                     self.logger.info(f"Synthesizing line {idx}: {speaker_key} -> {voice_id}")
+                    t0 = time.perf_counter()
                     clip = tts.synthesize(utterance, lang=target_lang, voice=voice_id)
+                    synthesis_time += time.perf_counter() - t0
                     self.cache.set(utterance, target_lang, clip, voice=voice_id, backend="EdgeTTSBackend")
                     audio_clips.append(clip)
 
             final_audio = stitch_audio_chunks(audio_clips, pause_ms=300)
 
-        synthesis_time = time.perf_counter() - start_time
         duration_seconds = 0.0
         if final_audio:
             try:
@@ -195,11 +207,17 @@ class PipelineOrchestrator:
             except Exception:
                 pass
 
+        total_chunks = len(lines)
+        cache_savings = (cache_hits / total_chunks * 100) if total_chunks else 0.0
         rtf = synthesis_time / duration_seconds if duration_seconds > 0 else 0.0
         metrics = {
+            "translation_time": translation_time,
             "synthesis_time": synthesis_time,
             "duration": duration_seconds,
             "rtf": rtf,
+            "cache_hits": cache_hits,
+            "total_chunks": total_chunks,
+            "cache_savings": cache_savings,
         }
 
         self.logger.info(f"Scene rendered: {len(lines)} lines, cast={cast}, metrics={metrics}")
