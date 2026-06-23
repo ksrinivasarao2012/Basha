@@ -30,6 +30,24 @@ def split_text_into_chunks(text: str, max_chars: int = 240) -> List[str]:
             temp_chunk = []
             temp_len = 0
             for word in words:
+                # A single word longer than max_chars can never fit alongside
+                # other words, so hard-split it by characters. Without this it
+                # produces an empty chunk followed by the whole over-long word.
+                if len(word) > max_chars:
+                    if temp_chunk:
+                        chunks.append(" ".join(temp_chunk))
+                        temp_chunk = []
+                        temp_len = 0
+                    for i in range(0, len(word), max_chars):
+                        piece = word[i:i + max_chars]
+                        if len(piece) == max_chars:
+                            chunks.append(piece)
+                        else:
+                            # Trailing remainder carries forward to combine with
+                            # following words.
+                            temp_chunk = [piece]
+                            temp_len = len(piece)
+                    continue
                 if temp_len + len(word) + 1 > max_chars:
                     chunks.append(" ".join(temp_chunk))
                     temp_chunk = [word]

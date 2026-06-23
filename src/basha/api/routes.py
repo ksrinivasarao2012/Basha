@@ -122,6 +122,9 @@ def synthesize(request: SynthesizeRequest):
         # Return the raw audio bytes as an audio/mpeg stream
         return Response(content = audio_bytes, media_type = "audio/mpeg")
 
+    except HTTPException:
+        # Preserve intentional client errors (e.g. 400) instead of masking them as 500.
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
