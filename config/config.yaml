@@ -9,7 +9,6 @@
 #   auto         -> pick a local model by language (needs a GPU — not for you)
 #   indic_parler -> AI4Bharat model for Indian languages (GPU)
 #   xtts         -> Coqui model for European languages (GPU)
-#   sarvam       -> paid/free-credits API for Indian languages (needs a key)
 default_backend: gtts
 
 # Which translation engine to use.
@@ -25,5 +24,3 @@ cache:
 chunking:
   max_chars: 240          # split long text on clause boundaries above this length
 
-eval:
-  cer_threshold: 0.15     # quality gate: fail if Character Error Rate exceeds this

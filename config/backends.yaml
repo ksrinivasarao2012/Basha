@@ -18,10 +18,6 @@ tts:
     model_id: "tts_models/multilingual/multi-dataset/xtts_v2"
     languages: [en, de, fr, es, it, pt]
 
-  sarvam:
-    endpoint: "https://api.sarvam.ai/text-to-speech"
-    # the API key is read from .env (SARVAM_API_KEY), never written here
-
 translation:
   deep_translator:
     provider: "google"              # uses the free Google endpoint

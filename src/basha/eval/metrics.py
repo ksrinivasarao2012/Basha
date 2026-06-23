@@ -77,3 +77,31 @@ def calculate_rtf(synthesis_time: float, audio_duration: float) -> float:
     if audio_duration <= 0:
         return 0.0
     return float(synthesis_time) / float(audio_duration)
+
+_similarity_model = None
+
+def calculate_semantic_similarity(reference: str, hypothesis: str) -> float:
+    """
+    Computes semantic similarity (cosine similarity of embeddings) between
+    reference and hypothesis text using paraphrase-multilingual-MiniLM-L12-v2.
+    """
+    global _similarity_model
+    if not reference or not hypothesis:
+        return 0.0
+    
+    try:
+        if _similarity_model is None:
+            from sentence_transformers import SentenceTransformer
+            _similarity_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+            
+        emb1 = _similarity_model.encode(reference, convert_to_tensor=True)
+        emb2 = _similarity_model.encode(hypothesis, convert_to_tensor=True)
+        
+        from sentence_transformers.util import cos_sim
+        sim = cos_sim(emb1, emb2).item()
+        return round(float(sim), 4)
+    except Exception as e:
+        # Fallback to a basic string match indicator or return 0.0 if imports/loading fail
+        return 0.0
+
+

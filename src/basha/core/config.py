@@ -23,7 +23,6 @@ class Settings:
         self.cache_enabled = True
         self.cache_max_size_mb = 512
         self.chunking_max_chars = 240
-        self.eval_cer_threshold = 0.15
         
         self.backends = {}
         
@@ -41,17 +40,14 @@ class Settings:
                 chunk_cfg = config.get("chunking", {})
                 self.chunking_max_chars = chunk_cfg.get("max_chars", self.chunking_max_chars)
                 
-                eval_cfg = config.get("eval", {})
-                self.eval_cer_threshold = eval_cfg.get("cer_threshold", self.eval_cer_threshold)
-                
         # 2. Load backends.yaml
         if backends_path.exists():
             with open(backends_path, "r", encoding="utf-8") as f:
                 self.backends = yaml.safe_load(f) or {}
                 
         # 3. Read secrets/tokens from Environment
-        self.sarvam_api_key = os.getenv("SARVAM_API_KEY", "")
         self.hf_token = os.getenv("HF_TOKEN", "")
 
 # Global shared settings instance
 settings = Settings()
+

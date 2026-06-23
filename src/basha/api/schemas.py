@@ -1,4 +1,4 @@
-from pydantic import BaseModel,Field
+from pydantic import BaseModel, Field
 from typing import Optional, Dict
 
 class SceneRequest(BaseModel):
@@ -27,7 +27,7 @@ class SynthesizeRequest(BaseModel):
     text: str = Field(..., description="The English text you want to translate and read out loud", min_length=1, max_length=2000)
     target_language: str = Field(default ='hi',description="The target language code (e.g., 'te' for Telugu, 'de' for German)")
     voice: Optional[str] = Field(None, description="Optional voice identifier.")
-    backend: Optional[str] = Field("auto", description="The TTS backend to use ('gtts', 'sarvam', 'auto')")
+    backend: Optional[str] = Field("auto", description="The TTS backend to use ('gtts', 'auto')")
 
 
 class SynthesizeResponse(BaseModel):
@@ -50,21 +50,18 @@ class JobSubmitRequest(BaseModel):
     target_language: str = Field(default='hi', description="The target language code (e.g., 'te', 'de')")
     voice: Optional[str] = Field(None, description="Optional voice identifier.")
     gender: Optional[str] = Field(None, description="Preferred voice gender: 'male' or 'female' (uses Edge-TTS).")
-    backend: Optional[str] = Field("auto", description="The TTS backend to use ('gtts', 'sarvam', 'auto')")
+    backend: Optional[str] = Field("auto", description="The TTS backend to use ('gtts', 'auto')")
 
 
 class JobMetrics(BaseModel):
     """
     Quality and performance metrics for a completed job.
-    CER/WER are optional: they are None when ASR could not transcribe the audio
-    (e.g. unsupported language or a rate-limited request), so we never report a
-    misleading 100% error for what is really a measurement failure.
+    Includes ASR transcription to review spoken correctness without arbitrary/strict string matching metrics.
     """
-    cer: Optional[float] = Field(None, description="Character Error Rate (None if ASR unavailable)")
-    wer: Optional[float] = Field(None, description="Word Error Rate (None if ASR unavailable)")
     rtf: float = Field(..., description="Real-Time Factor")
     transcription: str = Field(..., description="ASR transcription of the output audio")
     asr_available: bool = Field(True, description="Whether ASR produced a usable transcription")
+    semantic_similarity: Optional[float] = Field(None, description="Semantic similarity score (0.0 to 1.0) using BERT model")
     translated_text: Optional[str] = Field(None, description="Input text translated into the target language (shown in the UI).")
     translation_time: Optional[float] = Field(None, description="Translation time in seconds")
     synthesis_time: Optional[float] = Field(None, description="Synthesis/TTS time in seconds")
@@ -84,5 +81,3 @@ class JobStatusResponse(BaseModel):
     error: Optional[str] = None
     download_url: Optional[str] = None
     metrics: Optional[JobMetrics] = None
-
-

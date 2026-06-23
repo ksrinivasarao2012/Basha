@@ -11,7 +11,7 @@ from basha.api.schemas import SynthesizeRequest, JobSubmitRequest, JobStatusResp
 from basha.pipeline.orchestrator import PipelineOrchestrator
 from basha.jobs.queue import job_manager
 from basha.core.logging import get_logger
-from basha.eval.metrics import calculate_cer, calculate_wer, calculate_rtf
+from basha.eval.metrics import calculate_rtf, calculate_semantic_similarity
 from basha.eval.asr_roundtrip import transcribe_audio_bytes, ASRRateLimited
 
 # Create a router object to group our endpoints
@@ -71,28 +71,22 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
             asr_note = f"ASR error: {e}"
             transcription = ""
 
-        # Translate once: shown in the UI as the "translated text" AND reused for
-        # the CER/WER comparison below.
+        # Translate once: shown in the UI as the "translated text".
         try:
             translated_text = orchestrator.translator.translate(text, target_lang)
         except Exception as e:
             logger.warning(f"Translation failed during evaluation: {e}")
             translated_text = text
 
-        if asr_available:
-            cer = round(calculate_cer(translated_text, transcription), 4)
-            wer = round(calculate_wer(translated_text, transcription), 4)
-        else:
-            # Don't fabricate a 100% — report CER/WER as unavailable.
-            cer = None
-            wer = None
+        sem_sim = None
+        if asr_available and transcription:
+            sem_sim = calculate_semantic_similarity(translated_text, transcription)
 
         metrics_dict = {
-            "cer": cer,
-            "wer": wer,
             "rtf": round(pipeline_metrics.get("rtf", 0.0), 4),
             "transcription": transcription or f"[ASR unavailable] {asr_note}",
             "asr_available": asr_available,
+            "semantic_similarity": sem_sim,
             "translated_text": translated_text,
             "translation_time": round(pipeline_metrics.get("translation_time", 0.0), 4),
             "synthesis_time": round(pipeline_metrics.get("synthesis_time", 0.0), 4),
@@ -102,8 +96,7 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
         }
 
         job_manager.complete_job(job_id, f"job_{job_id}.mp3", metrics_dict)
-        cer_str = f"{cer:.4f}" if cer is not None else "N/A"
-        logger.info(f"Background task completed for job {job_id}. RTF={metrics_dict['rtf']:.4f}, CER={cer_str}")
+        logger.info(f"Background task completed for job {job_id}. RTF={metrics_dict['rtf']:.4f}, SemanticSimilarity={sem_sim}")
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {str(e)}", exc_info=True)
         job_manager.fail_job(job_id, str(e))

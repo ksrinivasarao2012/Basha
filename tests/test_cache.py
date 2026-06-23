@@ -29,11 +29,12 @@ class TestAudioCache(unittest.TestCase):
         text = "Namaste"
         lang = "hi"
         data_gtts = b"gtts-audio"
-        data_sarvam = b"sarvam-audio"
+        data_edge = b"edge-audio"
 
         self.cache.set(text, lang, data_gtts, backend="GTTSBackend")
-        self.cache.set(text, lang, data_sarvam, backend="SarvamBackend")
+        self.cache.set(text, lang, data_edge, backend="EdgeTTSBackend")
 
         # Verify we get the backend-specific cache
         self.assertEqual(self.cache.get(text, lang, backend="GTTSBackend"), data_gtts)
-        self.assertEqual(self.cache.get(text, lang, backend="SarvamBackend"), data_sarvam)
+        self.assertEqual(self.cache.get(text, lang, backend="EdgeTTSBackend"), data_edge)
+
