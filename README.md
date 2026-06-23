@@ -140,8 +140,7 @@ basha/
 │   │   └── parser.py             # Speaker: line script parsing helpers
 │   └── eval/
 │       ├── asr_roundtrip.py      # synth → ASR → text (intelligibility check)
-│       ├── metrics.py            # CER, WER (normalized), RTF
-│       └── benchmark.py          # multi-backend comparison helpers
+│       └── metrics.py            # semantic similarity (BERT), RTF, CER/WER helpers
 │
 ├── client/
 │   └── web/index.html            # web UI (HTML + Tailwind + vanilla JS)
@@ -154,7 +153,6 @@ basha/
 ├── samples/                      # example inputs/outputs + FLORES eval set
 ├── tests/                        # pytest: chunker, cache, eval, api, factory, jobs, parser/voices
 └── docs/
-    ├── architecture.md
     └── PITFALLS.md               # the non-obvious bugs and how they were fixed
 ```
 
