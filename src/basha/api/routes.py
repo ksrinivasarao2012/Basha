@@ -11,8 +11,6 @@ from basha.api.schemas import SynthesizeRequest, JobSubmitRequest, JobStatusResp
 from basha.pipeline.orchestrator import PipelineOrchestrator
 from basha.jobs.queue import job_manager
 from basha.core.logging import get_logger
-from basha.eval.metrics import calculate_rtf, calculate_semantic_similarity
-from basha.eval.asr_roundtrip import transcribe_audio_bytes, ASRRateLimited
 
 # Create a router object to group our endpoints
 router = APIRouter()
@@ -45,48 +43,23 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
         with open(file_path, "wb") as f:
             f.write(audio_bytes)
 
-        # Get audio duration
-        audio_segment = AudioSegment.from_file(file_path)
-        audio_duration = len(audio_segment) / 1000.0  # seconds
-
-        # ASR Round-trip transcription
-        logger.info(f"Running ASR round-trip evaluation for job {job_id}")
-        asr_available = True
-        asr_note = ""
-        try:
-            transcription = transcribe_audio_bytes(audio_bytes, lang=target_lang)
-            if not transcription or not transcription.strip():
-                # ASR ran but returned nothing intelligible — not a real 100% error.
-                asr_available = False
-                asr_note = "ASR returned no text (audio unintelligible to the free recognizer)."
-                transcription = ""
-        except ASRRateLimited as e:
-            logger.warning(f"ASR rate-limited for job {job_id}: {e}")
-            asr_available = False
-            asr_note = "Free Google recognizer rate-limited this request. Wait a few minutes and retry."
-            transcription = ""
-        except Exception as e:
-            logger.warning(f"ASR transcription failed during evaluation: {e}")
-            asr_available = False
-            asr_note = f"ASR error: {e}"
-            transcription = ""
+        # NOTE: ASR round-trip + multilingual BERT semantic-similarity scoring are
+        # evaluation-only (heavy on memory, slow, and rate-limited by Google ASR).
+        # They run offline in scripts/asr_semantic_eval.py — NOT on every live request —
+        # so the deployed service stays light (no torch/BERT loaded at runtime) and fast.
 
         # Translate once: shown in the UI as the "translated text".
         try:
             translated_text = orchestrator.translator.translate(text, target_lang)
         except Exception as e:
-            logger.warning(f"Translation failed during evaluation: {e}")
+            logger.warning(f"Translation failed for job {job_id}: {e}")
             translated_text = text
-
-        sem_sim = None
-        if asr_available and transcription:
-            sem_sim = calculate_semantic_similarity(translated_text, transcription)
 
         metrics_dict = {
             "rtf": round(pipeline_metrics.get("rtf", 0.0), 4),
-            "transcription": transcription or f"[ASR unavailable] {asr_note}",
-            "asr_available": asr_available,
-            "semantic_similarity": sem_sim,
+            "transcription": "",
+            "asr_available": False,
+            "semantic_similarity": None,
             "translated_text": translated_text,
             "translation_time": round(pipeline_metrics.get("translation_time", 0.0), 4),
             "synthesis_time": round(pipeline_metrics.get("synthesis_time", 0.0), 4),
@@ -96,7 +69,7 @@ def run_background_synthesis(job_id: str, text: str, target_lang: str, voice: Op
         }
 
         job_manager.complete_job(job_id, f"job_{job_id}.mp3", metrics_dict)
-        logger.info(f"Background task completed for job {job_id}. RTF={metrics_dict['rtf']:.4f}, SemanticSimilarity={sem_sim}")
+        logger.info(f"Background task completed for job {job_id}. RTF={metrics_dict['rtf']:.4f}")
     except Exception as e:
         logger.error(f"Background task failed for job {job_id}: {str(e)}", exc_info=True)
         job_manager.fail_job(job_id, str(e))

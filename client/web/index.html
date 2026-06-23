@@ -193,15 +193,12 @@ Meena: Yes! I cannot wait. Are you coming with us?
 Ravi: Of course. Let us leave early in the morning.
 Narrator: And so their journey began.</textarea>
       </div>
-      <div class="flex items-center justify-between gap-4">
-        <div class="w-1/2 relative">
+      <div class="space-y-2">
+        <label class="text-label-sm text-secondary">Target language</label>
+        <div class="relative">
           <select id="scene-lang" class="input-field appearance-none pr-10 py-2"></select>
           <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none">expand_more</span>
         </div>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input id="scene-translate" checked type="checkbox" class="rounded text-primary-container focus:ring-primary-container border-outline-variant"/>
-          <span class="text-label-sm text-on-surface">Translate Script</span>
-        </label>
       </div>
       <button id="scene-btn" class="btn-primary w-full py-3">Render Scene <span class="material-symbols-outlined">movie</span></button>
 
@@ -357,7 +354,7 @@ document.getElementById("scene-btn").onclick = async () => {
       body: JSON.stringify({
         script,
         target_language: document.getElementById("scene-lang").value,
-        translate: document.getElementById("scene-translate").checked
+        translate: true
       })
     });
     if (!resp.ok) { status.textContent = "Error: " + (await resp.text()); return; }
