@@ -81,7 +81,7 @@ that activates only when `SARVAM_API_KEY` is set.
 
 ```mermaid
 flowchart TD
-    UI["Web UI / Streamlit / curl"] -->|HTTP| API["FastAPI service"]
+    UI["Web UI / curl"] -->|HTTP| API["FastAPI service"]
     API --> Orchestrator["Pipeline orchestrator"]
     Orchestrator --> Chunker["Clause-aware chunker"]
     Chunker --> Translate["Translation backend (deep-translator)"]
@@ -106,10 +106,10 @@ Two principles the design hangs on:
 ```
 basha/
 ├── README.md
-├── GETTING_STARTED.md            # beginner-friendly build guide
 ├── requirements.txt
 ├── pyproject.toml                # editable install (pip install -e .)
-├── .env.example                  # optional SARVAM_API_KEY etc.
+├── Dockerfile                    # container image (installs ffmpeg)
+├── render.yaml                   # one-click Render deploy config
 │
 ├── config/
 │   ├── config.yaml               # cache settings, defaults
@@ -148,8 +148,7 @@ basha/
 │       └── benchmark.py          # multi-backend comparison helpers
 │
 ├── client/
-│   ├── web/index.html            # primary web UI (HTML + Tailwind + vanilla JS)
-│   └── streamlit_app.py          # secondary Streamlit UI
+│   └── web/index.html            # web UI (HTML + Tailwind + vanilla JS)
 │
 ├── scripts/
 │   ├── tts_eval.py               # TTS evaluation: MOS sheet + FLORES speed benchmark
@@ -191,8 +190,9 @@ basha/
 pip install -r requirements.txt
 pip install -e .
 
-# 2. (optional) premium backend key
-cp .env.example .env        # then add SARVAM_API_KEY if you have one
+# 2. (optional) premium backend key — create a .env file with:
+#    SARVAM_API_KEY=your_key_here
+#    The app runs fully free without it.
 
 # 3. Run the service (serves both the API and the web UI)
 uvicorn basha.main:app --app-dir src --reload --port 8000
@@ -203,12 +203,6 @@ Then open the web UI at:
 ### **http://localhost:8000**
 
 The interactive API docs are at **http://localhost:8000/docs**.
-
-A secondary Streamlit client is also available:
-
-```bash
-streamlit run client/streamlit_app.py
-```
 
 > **ffmpeg** is required by `pydub` for audio stitching. Install it and ensure it's on PATH.
 
