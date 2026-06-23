@@ -12,8 +12,6 @@ env/
 # Generated audio / artifacts
 samples/output/*
 !samples/output/.gitkeep
-benchmarks/results/*
-!benchmarks/results/.gitkeep
 *.wav
 *.mp3
 
