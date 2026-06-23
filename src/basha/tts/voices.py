@@ -78,7 +78,21 @@ class VoiceManager:
     # ---------------------------------------------------------------------
     # Public API
     # ---------------------------------------------------------------------
-    def get_voice(self, speaker: str, target_lang: str, gender: Optional[str] = None) -> Optional[str]:
+    def get_narrator_voice(self, target_lang: str) -> Optional[str]:
+        """Return a fixed, deterministic voice reserved for the Narrator.
+
+        Prefers a male voice (a neutral narration feel) and otherwise falls back
+        to the first available voice for the language. Always returns the *same*
+        voice for a given language so the narrator sounds consistent.
+        """
+        all_voices = self._get_voices_for_lang(target_lang)
+        if not all_voices:
+            return None
+        males = [v["ShortName"] for v in all_voices if v.get("Gender", "").lower() == "male"]
+        return males[0] if males else all_voices[0]["ShortName"]
+
+    def get_voice(self, speaker: str, target_lang: str, gender: Optional[str] = None,
+                  exclude: Optional[List[str]] = None) -> Optional[str]:
         """Return a voice ID for *speaker* in *target_lang*.
 
         Resolution order:
@@ -87,6 +101,9 @@ class VoiceManager:
         2️⃣ **Gender‑aware fallback** – if ``gender`` is ``"male"`` or ``"female"``
             pick a voice that matches the gender.
         3️⃣ **General fallback** – round‑robin over any remaining voices.
+
+        ``exclude`` lists voice IDs that must not be auto-assigned (e.g. the voice
+        reserved for the Narrator), so no character ever shares it.
         """
         # 1️⃣ Explicit mapping
         if speaker in self.explicit_map:
@@ -97,17 +114,24 @@ class VoiceManager:
         if not all_voices:
             return None
 
+        excluded = set(exclude or [])
+
         # 2️⃣ Gender‑aware selection
         if gender:
             gender_key = gender.lower()
-            gender_pool = [v["ShortName"] for v in all_voices if v.get("Gender", "").lower() == gender_key]
+            gender_pool = [v["ShortName"] for v in all_voices
+                           if v.get("Gender", "").lower() == gender_key and v["ShortName"] not in excluded]
             if gender_pool:
                 idx = self._round_robin_index[target_lang].get(gender_key, 0)
                 voice = gender_pool[idx % len(gender_pool)]
                 self._round_robin_index[target_lang][gender_key] = (idx + 1) % len(gender_pool)
                 return voice
-        # 3️⃣ General fallback (any voice)
-        any_pool = [v["ShortName"] for v in all_voices]
+        # 3️⃣ General fallback (any voice not excluded)
+        any_pool = [v["ShortName"] for v in all_voices if v["ShortName"] not in excluded]
+        if not any_pool:
+            # Every voice was excluded — fall back to the full pool rather than
+            # return nothing (e.g. a language with only one voice).
+            any_pool = [v["ShortName"] for v in all_voices]
         idx = self._round_robin_index[target_lang].get("any", 0)
         voice = any_pool[idx % len(any_pool)]
         self._round_robin_index[target_lang]["any"] = (idx + 1) % len(any_pool)

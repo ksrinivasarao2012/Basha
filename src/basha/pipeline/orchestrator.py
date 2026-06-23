@@ -156,6 +156,14 @@ class PipelineOrchestrator:
         vm = VoiceManager(valid_map)
         tts = EdgeTTSBackend()  # only Edge supports multiple distinct voices
 
+        # Reserve one fixed voice for the Narrator (only if the script has narration),
+        # and keep it out of the pool so no character is ever assigned the same voice.
+        has_narrator = any(spk is None for spk, _ in lines)
+        narrator_voice = None
+        if has_narrator:
+            narrator_voice = valid_map.get("Narrator") or vm.get_narrator_voice(target_lang)
+        exclude_voices = [narrator_voice] if narrator_voice else None
+
         cast: Dict[str, str] = {}          # speaker -> voice id (stable per speaker)
         audio_clips: List[bytes] = []
         transcript: List[Dict[str, str]] = []   # speaker + (translated) line, for the UI
@@ -172,7 +180,10 @@ class PipelineOrchestrator:
                 speaker_key = speaker or "Narrator"
                 # Assign a voice once per speaker so a character always sounds the same.
                 if speaker_key not in cast:
-                    cast[speaker_key] = vm.get_voice(speaker_key, target_lang)
+                    if speaker_key == "Narrator":
+                        cast[speaker_key] = narrator_voice
+                    else:
+                        cast[speaker_key] = vm.get_voice(speaker_key, target_lang, exclude=exclude_voices)
                 voice_id = cast[speaker_key]
 
                 # Optionally localize the line.

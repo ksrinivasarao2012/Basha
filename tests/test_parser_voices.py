@@ -101,6 +101,19 @@ class TestVoiceManager:
         vm = VoiceManager()
         assert vm.get_voice("A", "xyz") is None
 
+    def test_narrator_voice_is_fixed_and_male_preferred(self):
+        vm = VoiceManager()
+        # Deterministic: prefers a male voice; same result every call.
+        assert vm.get_narrator_voice("hi") == "hi-IN-MadhavNeural"
+        assert vm.get_narrator_voice("hi") == "hi-IN-MadhavNeural"
+
+    def test_excluded_voice_is_never_assigned(self):
+        vm = VoiceManager()
+        narrator = vm.get_narrator_voice("hi")  # hi-IN-MadhavNeural
+        # No matter how many characters we assign, none gets the narrator's voice.
+        for speaker in ("A", "B", "C", "D"):
+            assert vm.get_voice(speaker, "hi", exclude=[narrator]) != narrator
+
     def test_validate_explicit_map_drops_invalid_ids(self):
         explicit = {
             "Ravi": "hi-IN-MadhavNeural",   # valid
