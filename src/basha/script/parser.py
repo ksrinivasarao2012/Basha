@@ -1,36 +1,33 @@
-import re
-from typing import Dict, List, Tuple
+from typing import List, Optional, Tuple
 
-# Simple script parser for dialogue lines.
-# Expected format per line: "Speaker: text" (colon separates speaker and utterance).
-# Empty lines are ignored.
+# Dialogue script parser — the single source of truth used by the pipeline
+# orchestrator to render multi-voice scenes.
+#
+# Expected format per line: "Speaker: text" (the first colon separates the
+# speaker from the utterance). A line with no colon — or an empty speaker — is
+# treated as narration (speaker = None). Blank lines are skipped.
 
-def parse_script(script: str, voice_mapping: Dict[str, str] = None) -> List[Tuple[str, str]]:
-    """Parse a dialogue script into a list of (text, voice_id) tuples.
+
+def parse_dialogue(script: str) -> List[Tuple[Optional[str], str]]:
+    """Parse a dialogue script into ordered ``(speaker, utterance)`` pairs.
 
     Args:
-        script: Multiline string containing the script.
-        voice_mapping: Optional mapping from speaker name to Edge‑TTS voice ID.
-                       If a speaker is not present in the mapping, ``None`` is returned
-                       for that line, meaning the default backend voice will be used.
+        script: Multiline string. Each line is ``Speaker: text``.
+
     Returns:
-        List of (utterance_text, voice_id) tuples preserving the original order.
+        List of ``(speaker, utterance)`` tuples preserving the original order.
+        ``speaker`` is ``None`` for narration (no colon or empty speaker), in
+        which case the caller assigns a default/narrator voice.
     """
-    if voice_mapping is None:
-        voice_mapping = {}
-    result: List[Tuple[str, str]] = []
+    parsed: List[Tuple[Optional[str], str]] = []
     for line in script.splitlines():
         line = line.strip()
         if not line:
             continue
-        # Split on the first colon
         parts = line.split(":", 1)
-        if len(parts) != 2:
-            # If no colon, treat the entire line as narration with default voice
-            speaker = None
-            utterance = line
+        if len(parts) == 2 and parts[0].strip():
+            parsed.append((parts[0].strip(), parts[1].strip()))
         else:
-            speaker, utterance = parts[0].strip(), parts[1].strip()
-        voice_id = voice_mapping.get(speaker) if speaker else None
-        result.append((utterance, voice_id))
-    return result
+            # No colon, or an empty speaker -> narration; keep the line as-is.
+            parsed.append((None, line))
+    return parsed

@@ -3,6 +3,7 @@ import time
 from typing import List, Dict, Optional, Tuple, Any
 from pydub import AudioSegment
 from basha.pipeline.chunker import split_text_into_chunks
+from basha.script.parser import parse_dialogue
 from basha.pipeline.stitcher import stitch_audio_chunks
 from basha.translation.deep_translator_backend import DeepTranslatorBackend
 from basha.tts.factory import TTSFactory
@@ -122,25 +123,6 @@ class PipelineOrchestrator:
     # ------------------------------------------------------------------
     # Multi-voice audio-drama rendering
     # ------------------------------------------------------------------
-    @staticmethod
-    def _parse_lines(script: str) -> List[Tuple[Optional[str], str]]:
-        """Parse a script into (speaker, utterance) pairs.
-
-        Each line is ``Speaker: text``. A line with no colon is treated as
-        narration (speaker = None). Blank lines are skipped.
-        """
-        parsed: List[Tuple[Optional[str], str]] = []
-        for line in script.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split(":", 1)
-            if len(parts) == 2 and parts[0].strip():
-                parsed.append((parts[0].strip(), parts[1].strip()))
-            else:
-                parsed.append((None, line))
-        return parsed
-
     def process_scene(
         self,
         script: str,
@@ -164,7 +146,7 @@ class PipelineOrchestrator:
             return b'', {}, [], {"synthesis_time": 0.0, "duration": 0.0, "rtf": 0.0}
 
         start_time = time.perf_counter()
-        lines = self._parse_lines(script)
+        lines = parse_dialogue(script)
 
         # Validate any user-supplied map against the live voice list, then build
         # a manager that auto-assigns voices for unmapped characters.

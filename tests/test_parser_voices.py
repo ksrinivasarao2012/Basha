@@ -9,46 +9,43 @@ from unittest.mock import patch
 
 import pytest
 
-from basha.script.parser import parse_script
+from basha.script.parser import parse_dialogue
 from basha.tts.voices import VoiceManager
 
 
 # ---------------------------------------------------------------------------
 # Dialogue script parser
 # ---------------------------------------------------------------------------
-class TestParseScript:
+class TestParseDialogue:
     def test_standard_speaker_lines(self):
         script = "Ravi: Hello there\nMeena: Hi Ravi"
-        mapping = {"Ravi": "hi-IN-MadhavNeural", "Meena": "hi-IN-SwaraNeural"}
-        result = parse_script(script, mapping)
+        result = parse_dialogue(script)
         assert result == [
-            ("Hello there", "hi-IN-MadhavNeural"),
-            ("Hi Ravi", "hi-IN-SwaraNeural"),
+            ("Ravi", "Hello there"),
+            ("Meena", "Hi Ravi"),
         ]
 
     def test_line_without_colon_is_narration(self):
-        # No colon -> whole line is the utterance, voice is None (default voice).
-        result = parse_script("Just a plain narration line")
-        assert result == [("Just a plain narration line", None)]
+        # No colon -> speaker is None (caller assigns a narrator voice).
+        result = parse_dialogue("Just a plain narration line")
+        assert result == [(None, "Just a plain narration line")]
 
     def test_blank_and_whitespace_lines_are_ignored(self):
         script = "Ravi: First\n\n   \n\t\nMeena: Second"
-        result = parse_script(script)
+        result = parse_dialogue(script)
         # Two real turns; the empty/whitespace lines drop out.
         assert len(result) == 2
-        assert result[0][0] == "First"
-        assert result[1][0] == "Second"
+        assert result[0] == ("Ravi", "First")
+        assert result[1] == ("Meena", "Second")
 
     def test_speaker_and_utterance_are_stripped(self):
-        script = "   Ravi   :    Hello world   "
-        mapping = {"Ravi": "v1"}
-        result = parse_script(script, mapping)
-        # Speaker name is stripped before the mapping lookup, utterance is stripped.
-        assert result == [("Hello world", "v1")]
+        result = parse_dialogue("   Ravi   :    Hello world   ")
+        assert result == [("Ravi", "Hello world")]
 
-    def test_unmapped_speaker_gets_none_voice(self):
-        result = parse_script("Ravi: Hello", voice_mapping={"Meena": "v2"})
-        assert result == [("Hello", None)]
+    def test_empty_speaker_is_treated_as_narration(self):
+        # A leading colon means no real speaker -> narration, line kept as-is.
+        result = parse_dialogue(": just a line")
+        assert result == [(None, ": just a line")]
 
 
 # ---------------------------------------------------------------------------
