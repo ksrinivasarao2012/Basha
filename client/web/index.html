@@ -1,415 +1,655 @@
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Basha - Multilingual Text-to-Speech &amp; Localization</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: {
-                    "on-background": "#111c2d",
-                    "primary": "#0061a4",
-                    "secondary": "#526069",
-                    "background": "#f9f9ff",
-                    "on-primary": "#ffffff",
-                    "surface": "#f9f9ff",
-                    "surface-container-lowest": "#ffffff",
-                    "surface-container-low": "#f0f3ff",
-                    "surface-container": "#e7eeff",
-                    "surface-container-high": "#dee8ff",
-                    "primary-container": "#2196f3",
-                    "on-surface": "#111c2d",
-                    "on-surface-variant": "#404752",
-                    "outline-variant": "#bfc7d4",
-                    "tertiary-container": "#db7900",
-                    "inverse-surface": "#263143",
-                    "surface-variant": "#d8e3fb",
-                    "secondary-fixed-dim": "#bac9d3",
-                    "primary-fixed": "#d1e4ff",
-                },
-                borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
-                spacing: { "stack-md": "16px", "container-padding": "24px", "gutter": "16px", "stack-sm": "8px", "stack-lg": "32px" },
-                fontFamily: { sans: ["Inter", "sans-serif"] },
-                fontSize: {
-                    "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
-                    "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
-                    "label-md": ["14px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "600" }],
-                    "label-sm": ["12px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "500" }],
-                    "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
-                },
-                boxShadow: { 'ambient': '0px 4px 12px rgba(30,41,59,0.05)', 'ambient-hover': '0px 8px 24px rgba(30,41,59,0.08)' }
-            }
-        }
-    }
-</script>
-<style type="text/tailwindcss">
-    @layer utilities {
-        .btn-primary { @apply bg-primary-container text-on-primary rounded-xl px-4 py-2 font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed; }
-        .btn-secondary { @apply bg-[#E3F2FD] text-primary-container rounded-xl px-4 py-2 font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors; }
-        .btn-outline { @apply border border-outline-variant text-on-surface-variant rounded-xl px-4 py-2 font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors; }
-        .input-field { @apply bg-surface border border-[#E3F2FD] rounded-xl px-4 py-3 text-on-surface focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 outline-none transition-all w-full; }
-        .card { @apply bg-surface-container-lowest rounded-xl shadow-ambient hover:shadow-ambient-hover transition-shadow p-container-padding; }
-    }
-    body { font-family: Inter, sans-serif; }
-</style>
+<title>Basha — Multilingual Text-to-Speech &amp; Localization</title>
+<!-- Apply saved theme before paint (avoids a flash). Default = dark (Aurora Violet, signature). -->
+<script>try{if(localStorage.getItem('basha-theme')==='light')document.documentElement.classList.add('light')}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-    /* Plain CSS (not Tailwind-processed): strip the browser's native dropdown
-       arrow so only the custom chevron shows — kills the double-arrow. */
-    select,
-    select.input-field {
-        -webkit-appearance: none !important;
-        -moz-appearance: none !important;
-        appearance: none !important;
-        background-image: none !important;
-    }
-    select::-ms-expand { display: none !important; }
+  /* ===================== Aurora Violet theme tokens ===================== */
+  :root{
+    /* Dark (default — the signature look) */
+    --background: oklch(0.13 0.025 285);
+    --foreground: oklch(0.96 0.01 290);
+    --card: oklch(0.19 0.03 285);
+    --muted-foreground: oklch(0.72 0.03 288);
+    --secondary: oklch(0.24 0.03 285);
+    --border: oklch(1 0 0 / 8%);
+    --input: oklch(1 0 0 / 14%);
+    --primary: oklch(0.68 0.18 295);
+    --primary-foreground: oklch(0.14 0.03 285);
+    --accent: oklch(0.26 0.04 290);
+    --accent-foreground: oklch(0.96 0.01 290);
+    --accent-from: oklch(0.66 0.2 295);
+    --accent-to: oklch(0.82 0.14 205);
+    --glow: oklch(0.66 0.22 295 / 0.4);
+    --ring: oklch(0.68 0.18 295);
+    --radius: 1.1rem;
+    --grad: linear-gradient(105deg, var(--accent-from), var(--accent-to));
+  }
+  html.light{
+    --background: oklch(0.985 0.006 290);
+    --foreground: oklch(0.22 0.03 285);
+    --card: oklch(1 0 0);
+    --muted-foreground: oklch(0.52 0.03 285);
+    --secondary: oklch(0.96 0.012 290);
+    --border: oklch(0.9 0.012 290);
+    --input: oklch(0.88 0.012 290);
+    --primary: oklch(0.58 0.22 295);
+    --primary-foreground: oklch(0.99 0.01 290);
+    --accent: oklch(0.95 0.02 290);
+    --accent-foreground: oklch(0.3 0.06 290);
+    --accent-from: oklch(0.62 0.2 295);
+    --accent-to: oklch(0.78 0.13 210);
+    --glow: oklch(0.62 0.2 295 / 0.28);
+    --ring: oklch(0.58 0.22 295);
+  }
+
+  /* ===================== Base ===================== */
+  *{ box-sizing:border-box; }
+  html{ font-family:'Inter',system-ui,-apple-system,sans-serif; }
+  body{ margin:0; min-height:100vh; background:var(--background); color:var(--foreground); -webkit-font-smoothing:antialiased; }
+  .page{ min-height:100vh; background:radial-gradient(60% 50% at 50% -8%, var(--glow), transparent 70%); }
+  .container{ width:100%; max-width:760px; margin:0 auto; padding:0 1rem; }
+  @media(min-width:640px){ .container{ padding:0 1.5rem; } }
+  [hidden]{ display:none !important; }
+  #player{ display:none; }
+  .text-gradient{ background-image:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .field-label{ font-size:0.7rem; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted-foreground); }
+
+  /* ===================== Header ===================== */
+  .site-header{ display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1.5rem 0; }
+  .brand{ display:flex; align-items:center; gap:0.75rem; }
+  .brand-mark{ display:grid; place-items:center; width:2.25rem; height:2.25rem; border-radius:0.75rem; background-image:var(--grad); color:var(--primary-foreground); box-shadow:0 8px 20px -8px var(--glow); }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-name{ font-family:'Space Grotesk',sans-serif; font-size:1.125rem; font-weight:600; letter-spacing:-0.01em; }
+  .brand-tag{ font-size:0.72rem; color:var(--muted-foreground); }
+  @media(max-width:520px){ .brand-tag{ display:none; } }
+  .header-right{ display:flex; align-items:center; gap:0.75rem; }
+  .icon-btn{ display:inline-flex; align-items:center; justify-content:center; width:2.25rem; height:2.25rem; border-radius:9999px; border:1px solid var(--border); background:color-mix(in oklab, var(--card) 60%, transparent); color:var(--muted-foreground); cursor:pointer; transition:color .2s, border-color .2s; }
+  .icon-btn:hover{ color:var(--foreground); border-color:color-mix(in oklab, var(--primary) 40%, transparent); }
+  .status-chip{ display:inline-flex; align-items:center; gap:0.5rem; border:1px solid var(--border); background:color-mix(in oklab, var(--card) 60%, transparent); border-radius:9999px; padding:0.4rem 0.75rem; font-size:0.72rem; color:var(--muted-foreground); white-space:nowrap; }
+  .status-dot{ position:relative; display:flex; width:0.5rem; height:0.5rem; }
+  .status-dot .ping{ position:absolute; inset:0; border-radius:9999px; opacity:.6; }
+  .status-dot .core{ position:relative; width:0.5rem; height:0.5rem; border-radius:9999px; }
+  .status-chip.online  .ping{ background:#10b981; animation:ping 1.6s cubic-bezier(0,0,.2,1) infinite; } .status-chip.online  .core{ background:#10b981; }
+  .status-chip.degraded .ping{ background:#f59e0b; } .status-chip.degraded .core{ background:#f59e0b; }
+  .status-chip.offline .ping{ background:#ef4444; } .status-chip.offline .core{ background:#ef4444; }
+  @media(max-width:520px){ #status-text{ display:none; } }
+
+  /* ===================== Hero ===================== */
+  .hero{ padding:1.5rem 0; text-align:center; animation:fade-rise .6s ease both; }
+  .hero h1{ margin:0; font-family:'Space Grotesk',sans-serif; font-size:1.875rem; font-weight:600; letter-spacing:-0.02em; line-height:1.15; }
+  @media(min-width:640px){ .hero h1{ font-size:2.25rem; } }
+  .hero p{ margin:0.75rem auto 0; max-width:28rem; font-size:0.875rem; line-height:1.6; color:var(--muted-foreground); }
+
+  /* ===================== Studio / cards ===================== */
+  .studio{ display:flex; flex-direction:column; gap:2rem; }
+  .card{ border:1px solid var(--border); background:color-mix(in oklab, var(--card) 55%, transparent); backdrop-filter:blur(10px); border-radius:calc(var(--radius) * 1.8); padding:1.25rem; }
+  @media(min-width:640px){ .card{ padding:1.75rem; } }
+
+  .switcher-wrap{ display:flex; justify-content:center; }
+  .switcher{ display:grid; grid-template-columns:1fr 1fr; gap:0.25rem; border:1px solid var(--border); background:color-mix(in oklab, var(--card) 60%, transparent); backdrop-filter:blur(6px); border-radius:9999px; padding:0.25rem; }
+  .mode-btn{ position:relative; z-index:1; border:none; background:none; border-radius:9999px; padding:0.6rem 1.1rem; font-size:0.875rem; font-weight:500; color:var(--muted-foreground); cursor:pointer; transition:color .3s; font-family:inherit; white-space:nowrap; }
+  .mode-btn:hover{ color:var(--foreground); }
+  .mode-btn.active{ color:var(--primary-foreground); }
+  .mode-btn.active::before{ content:""; position:absolute; inset:0; z-index:-1; border-radius:9999px; background-image:var(--grad); box-shadow:0 8px 24px -8px var(--glow); }
+
+  .panel{ display:flex; flex-direction:column; gap:1.25rem; }
+  .field{ display:flex; flex-direction:column; gap:0.5rem; }
+  .textarea{ width:100%; resize:vertical; border:1px solid var(--input); background:color-mix(in oklab, var(--background) 40%, transparent); border-radius:0.75rem; padding:0.75rem 1rem; font-size:0.875rem; line-height:1.6; color:var(--foreground); outline:none; transition:border-color .2s, box-shadow .2s; font-family:inherit; }
+  .textarea:focus{ border-color:color-mix(in oklab, var(--primary) 50%, transparent); box-shadow:0 0 0 3px color-mix(in oklab, var(--ring) 28%, transparent); }
+  .textarea::placeholder{ color:color-mix(in oklab, var(--muted-foreground) 60%, transparent); }
+  .textarea.mono{ font-family:'JetBrains Mono',monospace; font-size:0.8125rem; }
+  .grid-2{ display:grid; grid-template-columns:1fr; gap:1rem; }
+  @media(min-width:640px){ .grid-2{ grid-template-columns:1fr 1fr; } }
+
+  /* ===================== Custom select ===================== */
+  .select{ display:flex; flex-direction:column; gap:0.5rem; }
+  .select.narrow{ max-width:20rem; }
+  .select-wrap{ position:relative; }
+  .select-trigger{ display:flex; width:100%; align-items:center; justify-content:space-between; gap:0.5rem; border:1px solid var(--input); background:color-mix(in oklab, var(--card) 60%, transparent); backdrop-filter:blur(6px); border-radius:0.75rem; padding:0.7rem 1rem; font-size:0.875rem; color:var(--foreground); cursor:pointer; text-align:left; transition:border-color .2s; font-family:inherit; }
+  .select-trigger:hover{ border-color:color-mix(in oklab, var(--primary) 40%, transparent); }
+  .select-value{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .select-chevron{ color:var(--muted-foreground); transition:transform .3s, color .3s; flex-shrink:0; }
+  .select.open .select-chevron{ transform:rotate(180deg); color:var(--primary); }
+  .select-list{ position:absolute; z-index:30; top:calc(100% + 0.5rem); left:0; width:100%; max-height:16rem; overflow:auto; border:1px solid var(--border); background:var(--card); border-radius:0.75rem; padding:0.375rem; margin:0; list-style:none; box-shadow:0 18px 40px -12px rgba(0,0,0,.45); animation:fade-rise .22s ease both; }
+  .select-option{ display:flex; width:100%; align-items:center; justify-content:space-between; gap:0.5rem; border:none; background:none; border-radius:0.5rem; padding:0.5rem 0.75rem; font-size:0.875rem; color:var(--foreground); cursor:pointer; text-align:left; font-family:inherit; transition:background .15s; }
+  .select-option:hover{ background:color-mix(in oklab, var(--accent) 60%, transparent); }
+  .select-option.active{ background:var(--accent); color:var(--accent-foreground); }
+  .select-option .check{ opacity:0; color:var(--primary); flex-shrink:0; }
+  .select-option.active .check{ opacity:1; }
+
+  /* ===================== Primary button ===================== */
+  .btn-primary{ margin-top:1.5rem; display:inline-flex; width:100%; align-items:center; justify-content:center; gap:0.5rem; border:none; background-image:var(--grad); color:var(--primary-foreground); border-radius:0.75rem; padding:0.85rem 1.5rem; font-size:0.875rem; font-weight:600; cursor:pointer; box-shadow:0 12px 30px -10px var(--glow); transition:filter .2s, transform .1s; font-family:inherit; }
+  .btn-primary:hover{ filter:brightness(1.1); }
+  .btn-primary:active{ transform:scale(.99); }
+  .btn-primary:disabled{ opacity:.85; cursor:default; }
+
+  /* ===================== Result ===================== */
+  .result{ display:flex; flex-direction:column; gap:2rem; animation:fade-rise .6s cubic-bezier(.22,1,.36,1) both; }
+  .orb-holder{ display:flex; justify-content:center; padding-top:0.5rem; }
+  .playback{ display:flex; width:100%; align-items:center; gap:1rem; }
+  .play-btn{ display:grid; place-items:center; width:2.75rem; height:2.75rem; flex-shrink:0; border:none; border-radius:9999px; background-image:var(--grad); color:var(--primary-foreground); cursor:pointer; box-shadow:0 8px 24px -8px var(--glow); transition:transform .15s; }
+  .play-btn:hover{ transform:scale(1.05); } .play-btn:active{ transform:scale(.95); }
+  .pb-row{ display:flex; flex:1; align-items:center; gap:0.75rem; }
+  .pb-time{ font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--muted-foreground); font-variant-numeric:tabular-nums; min-width:2.25rem; }
+  .pb-time.cur{ text-align:right; }
+  .pb-track{ position:relative; height:0.375rem; flex:1; }
+  .pb-bg{ position:absolute; inset:0; border-radius:9999px; background:var(--secondary); }
+  .pb-fill{ position:absolute; top:0; bottom:0; left:0; width:0%; border-radius:9999px; background-image:var(--grad); }
+  .pb-thumb{ position:absolute; top:50%; left:0%; width:0.75rem; height:0.75rem; transform:translate(-50%,-50%); border-radius:9999px; background:var(--primary-foreground); box-shadow:0 1px 3px rgba(0,0,0,.4); outline:2px solid var(--primary); }
+  .pb-track input[type=range]{ position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; }
+
+  .tstack{ display:flex; flex-direction:column; gap:1.5rem; }
+  .tcontent{ display:flex; flex-direction:column; gap:0.5rem; }
+  .panel-box{ border:1px solid var(--border); background:color-mix(in oklab, var(--background) 40%, transparent); border-radius:1rem; padding:1.25rem; line-height:1.6; margin:0; }
+  .script-box{ display:flex; flex-direction:column; gap:0.75rem; }
+  .script-line{ margin:0; line-height:1.6; }
+  .script-line .speaker{ font-family:'Space Grotesk',sans-serif; font-weight:600; background-image:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .cast-wrap{ display:flex; flex-wrap:wrap; gap:0.5rem; }
+  .cast-pill{ display:inline-flex; align-items:center; gap:0.5rem; border:1px solid var(--border); background:color-mix(in oklab, var(--background) 40%, transparent); border-radius:9999px; padding:0.35rem 0.4rem 0.35rem 0.75rem; font-size:0.875rem; }
+  .cast-pill .cast-name{ font-weight:500; }
+  .cast-pill .cast-voice{ border-radius:9999px; background:var(--accent); color:var(--accent-foreground); padding:0.25rem 0.6rem; font-size:0.72rem; }
+
+  .download-row{ display:flex; justify-content:center; }
+  .download-link{ display:inline-flex; align-items:center; gap:0.375rem; font-size:0.75rem; font-weight:500; color:var(--muted-foreground); text-decoration:none; cursor:pointer; transition:color .2s; }
+  .download-link:hover{ color:var(--primary); }
+
+  .metrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; }
+  .metric{ border:1px solid var(--border); background:color-mix(in oklab, var(--card) 60%, transparent); border-radius:1rem; padding:1.1rem 0.6rem; text-align:center; }
+  .metric .mval{ font-family:'Space Grotesk',sans-serif; font-size:1.2rem; font-weight:600; background-image:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  @media(min-width:640px){ .metric .mval{ font-size:1.5rem; } }
+  .metric .mlabel{ margin-top:0.375rem; font-size:0.6rem; font-weight:500; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted-foreground); }
+
+  /* ===================== Footer ===================== */
+  .site-footer{ display:flex; flex-direction:column; align-items:center; gap:0.5rem; padding:2.5rem 0; text-align:center; font-size:0.72rem; color:var(--muted-foreground); }
+  @media(min-width:640px){ .site-footer{ flex-direction:row; justify-content:space-between; } }
+  .foot-left{ display:flex; align-items:center; gap:1rem; }
+  .foot-left a{ color:var(--muted-foreground); text-decoration:none; transition:color .2s; }
+  .foot-left a:hover{ color:var(--primary); }
+  .foot-right{ display:flex; align-items:center; gap:0.5rem; }
+  .clear-btn{ display:inline-flex; align-items:center; border:1px solid var(--border); background:var(--secondary); color:var(--foreground); border-radius:9999px; padding:0.25rem 0.75rem; font-size:0.72rem; font-weight:500; cursor:pointer; transition:all .2s; font-family:inherit; }
+  .clear-btn:hover{ border-color:color-mix(in oklab, var(--primary) 40%, transparent); }
+  .clear-btn:active{ transform:scale(.95); }
+
+  /* ===================== Voice orb ===================== */
+  .orb{ position:relative; display:grid; place-items:center; width:11rem; height:11rem; }
+  @media(min-width:640px){ .orb{ width:13rem; height:13rem; } }
+  .orb-glow{ position:absolute; inset:0; border-radius:9999px; filter:blur(40px); opacity:.7; background-image:var(--grad); animation:orb-breathe 6s ease-in-out infinite; }
+  .orb.playing .orb-glow{ animation:orb-pulse 2.6s ease-in-out infinite; }
+  .orb-ring{ position:absolute; inset:0.75rem; border-radius:9999px; border:1px solid color-mix(in oklab, var(--accent-from) 40%, transparent); opacity:0; }
+  .orb.playing .orb-ring{ animation:ring-ripple 2.8s ease-out infinite; }
+  .orb.playing .orb-ring-2{ border-color:color-mix(in oklab, var(--accent-to) 40%, transparent); animation-delay:1.4s; }
+  .orb-sphere{ position:relative; width:9rem; height:9rem; overflow:hidden; border-radius:9999px; box-shadow:0 20px 60px -15px var(--glow); outline:1px solid rgba(255,255,255,.15); transform:scale(var(--orb-scale,1)); transition:transform .12s ease-out; }
+  @media(min-width:640px){ .orb-sphere{ width:11rem; height:11rem; } }
+  .orb-fill{ position:absolute; inset:0; border-radius:9999px; background-image:var(--grad); opacity:.9; }
+  .orb-blob{ position:absolute; inset:-25%; border-radius:9999px; mix-blend-mode:screen; }
+  .orb-blob-1{ background:radial-gradient(circle at 30% 30%, var(--accent-to), transparent 55%); animation:orb-drift 11s ease-in-out infinite; }
+  .orb-blob-2{ background:radial-gradient(circle at 70% 65%, var(--accent-from), transparent 55%); animation:orb-drift 13s ease-in-out infinite reverse; }
+  .orb.playing .orb-blob-1{ animation-duration:5s; }
+  .orb.playing .orb-blob-2{ animation-duration:6.5s; }
+  .orb-conic{ position:absolute; inset:0; border-radius:9999px; mix-blend-mode:screen; opacity:.5; background:conic-gradient(from 0deg, transparent, var(--accent-to) 25%, transparent 55%, var(--accent-from) 80%, transparent); animation:orb-spin 22s linear infinite; }
+  .orb.playing .orb-conic{ animation-duration:8s; }
+  .orb-core{ position:absolute; inset:0; border-radius:9999px; background:radial-gradient(circle at 38% 32%, rgba(255,255,255,.65), transparent 45%); }
+  .orb-shadow{ position:absolute; inset:0; border-radius:9999px; box-shadow:inset 0 -18px 40px -12px rgba(0,0,0,.55), inset 0 10px 24px -12px rgba(255,255,255,.5); }
+
+  .spinner{ width:1rem; height:1rem; border-radius:9999px; border:2px solid color-mix(in oklab, var(--primary-foreground) 40%, transparent); border-top-color:var(--primary-foreground); animation:orb-spin .7s linear infinite; }
+
+  /* ===================== Toast ===================== */
+  .toast{ position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%) translateY(1rem); background:var(--card); color:var(--foreground); border:1px solid var(--border); border-radius:0.75rem; padding:0.75rem 1.25rem; font-size:0.875rem; box-shadow:0 12px 30px -10px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:50; max-width:90vw; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ===================== Keyframes ===================== */
+  @keyframes ping{ 75%,100%{ transform:scale(2); opacity:0; } }
+  @keyframes orb-breathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.04); } }
+  @keyframes orb-pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.09); } }
+  @keyframes orb-spin{ to{ transform:rotate(360deg); } }
+  @keyframes orb-drift{ 0%,100%{ transform:translate(0,0) scale(1); } 33%{ transform:translate(8%,-6%) scale(1.08); } 66%{ transform:translate(-7%,5%) scale(.96); } }
+  @keyframes ring-ripple{ 0%{ transform:scale(.85); opacity:.5; } 100%{ transform:scale(1.5); opacity:0; } }
+  @keyframes fade-rise{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; } }
 </style>
 </head>
-<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<body>
+<div class="page">
+  <div class="container">
 
-<!-- Header -->
-<header class="bg-surface text-primary shadow-sm w-full py-stack-md flex flex-col items-center justify-center z-10">
-  <div class="flex items-center gap-2">
-    <span class="material-symbols-outlined text-primary-container" style="font-variation-settings:'FILL' 1;">mic</span>
-    <h1 class="text-headline-md font-bold text-primary">Basha</h1>
-  </div>
-  <p class="text-label-sm text-secondary mt-1">Multilingual Text-to-Speech &amp; Localization</p>
-</header>
+    <!-- Header -->
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-mark" id="brand-mark"></span>
+        <div class="brand-text">
+          <span class="brand-name">Basha</span>
+          <span class="brand-tag">Multilingual Text-to-Speech &amp; Localization</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="status-chip offline" id="status-chip">
+          <span class="status-dot"><span class="ping"></span><span class="core"></span></span>
+          <span id="status-text">Connecting…</span>
+        </span>
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle theme"></button>
+      </div>
+    </header>
 
-<div class="flex flex-1">
-<!-- Sidebar -->
-<aside class="hidden md:flex flex-col bg-surface-container-low border-r border-outline-variant w-64 pt-20 h-screen overflow-y-auto fixed left-0 top-0 z-0">
-  <div class="px-6 mb-stack-lg">
-    <h2 class="text-headline-md font-bold text-primary">Basha Engine</h2>
-    <p class="text-label-sm text-secondary flex items-center gap-2 mt-2">
-      <span id="status-dot" class="w-2 h-2 rounded-full bg-gray-300"></span>
-      <span id="status-text">Checking…</span>
-    </p>
-  </div>
-  <nav class="flex-1 flex flex-col gap-1 px-4">
-    <a class="flex items-center gap-3 py-3 text-primary font-bold border-l-4 border-primary pl-4" href="#">
-      <span class="material-symbols-outlined">sensors</span><span class="text-label-md">System Status</span>
-    </a>
-  </nav>
-  <div class="p-6 mt-auto">
-    <div class="bg-surface rounded-xl p-4 border border-outline-variant">
-      <p class="text-label-md text-on-surface">Cache</p>
-      <p id="cache-info" class="text-body-sm text-secondary mt-1">…</p>
-      <button id="clear-cache-btn" class="btn-outline w-full mt-3">Clear Cache</button>
+    <!-- Hero -->
+    <div class="hero">
+      <h1>Speak any text, in any <span class="text-gradient">language</span></h1>
+      <p>Translate and voice your words with natural AI speech — narration or full multi-voice drama.</p>
     </div>
-  </div>
-</aside>
 
-<!-- Main -->
-<main class="flex-1 md:ml-64 p-4 md:p-8">
-  <div class="max-w-[720px] mx-auto space-y-stack-lg">
-
-    <!-- Section 1: Single narration -->
-    <section class="card space-y-stack-md">
-      <div>
-        <h3 class="text-headline-md text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings:'FILL' 1;">record_voice_over</span>
-          Single Narration
-        </h3>
-        <p class="text-body-sm text-secondary mt-1">Translate a block of text and narrate it in one voice.</p>
-      </div>
-      <div class="space-y-2">
-        <label class="text-label-md text-on-surface">English text to narrate</label>
-        <textarea id="tts-text" class="input-field min-h-[120px] resize-y" placeholder="Enter text here…">Basha turns written words into natural speech in many languages.</textarea>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-gutter">
-        <div class="flex-1 space-y-2">
-          <label class="text-label-sm text-secondary">Language</label>
-          <div class="relative">
-            <select id="tts-lang" class="input-field appearance-none pr-10"></select>
-            <span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">expand_more</span>
-          </div>
-        </div>
-        <div class="flex-1 space-y-2">
-          <label class="text-label-sm text-secondary">Voice</label>
-          <div class="relative">
-            <select id="tts-gender" class="input-field appearance-none pr-10">
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-            </select>
-            <span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none">expand_more</span>
-          </div>
+    <!-- Studio -->
+    <div class="studio">
+      <div class="switcher-wrap">
+        <div class="switcher" role="tablist" aria-label="Studio mode">
+          <button class="mode-btn active" data-mode="single" role="tab">Single Narration</button>
+          <button class="mode-btn" data-mode="drama" role="tab">Multi-Voice Drama</button>
         </div>
       </div>
-      <button id="generate-btn" class="btn-primary w-full py-3">Generate Audio <span class="material-symbols-outlined">rocket_launch</span></button>
 
-      <p id="tts-status" class="text-body-sm text-secondary hidden"></p>
-
-      <!-- Audio + download -->
-      <div id="tts-result" class="hidden space-y-stack-md">
-        <div class="bg-surface rounded-xl p-4 flex items-center gap-4 border border-[#E3F2FD]">
-          <audio id="tts-audio" controls class="w-full"></audio>
-        </div>
-        <div class="bg-[#E3F2FD]/40 rounded-xl p-4 border border-[#E3F2FD]">
-          <p class="text-label-sm text-secondary uppercase tracking-wide mb-1">Translated text</p>
-          <p id="tts-translation" class="text-body-md text-on-surface leading-relaxed"></p>
-        </div>
-        <a id="tts-download" class="btn-secondary w-max" download>
-          <span class="material-symbols-outlined text-[18px]">download</span> Download MP3
-        </a>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-gutter pt-2">
-          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Real-Time Factor</p>
-            <p id="stat-rtf" class="text-headline-md text-primary-container mt-1">—</p>
-          </div>
-          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Cache Savings</p>
-            <p id="stat-cache-savings" class="text-headline-md text-primary-container mt-1">—</p>
-          </div>
-          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Time Taken (Translate | Speak)</p>
-            <p id="stat-latency" class="text-headline-md text-primary-container mt-1">—</p>
+      <!-- Controls -->
+      <section class="card">
+        <!-- Single -->
+        <div class="panel" id="single-panel">
+          <label class="field">
+            <span class="field-label">Text to narrate</span>
+            <textarea class="textarea" id="single-text" rows="4" placeholder="Type the text you want spoken…">Every voice in this world carries a story. Basha tells that story in your own language, in a natural voice.</textarea>
+          </label>
+          <div class="grid-2">
+            <div class="select" id="single-lang">
+              <span class="field-label">Language</span>
+              <div class="select-wrap">
+                <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span class="select-value"></span></button>
+                <ul class="select-list" role="listbox" hidden></ul>
+              </div>
+            </div>
+            <div class="select" id="single-voice">
+              <span class="field-label">Voice</span>
+              <div class="select-wrap">
+                <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span class="select-value"></span></button>
+                <ul class="select-list" role="listbox" hidden></ul>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <div class="h-px bg-outline-variant/30 w-full"></div>
-
-    <!-- Section 2: Audio drama -->
-    <section class="card space-y-stack-md">
-      <div>
-        <h3 class="text-headline-md text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings:'FILL' 1;">theater_comedy</span>
-          Multi-Voice Audio Drama
-        </h3>
-        <p class="text-body-sm text-secondary mt-1">Create engaging dialogues with multiple characters.</p>
-      </div>
-      <div class="space-y-2">
-        <label class="text-label-md text-on-surface">Script (Name: Dialogue)</label>
-        <textarea id="scene-script" class="input-field min-h-[160px] font-mono text-sm resize-y">Ravi: Meena, have you heard the news about the festival?
+        <!-- Drama -->
+        <div class="panel" id="drama-panel" hidden>
+          <label class="field">
+            <span class="field-label">Script (Name: Dialogue)</span>
+            <textarea class="textarea mono" id="drama-script" rows="6">Ravi: Meena, have you heard the news about the festival?
 Meena: Yes! I cannot wait. Are you coming with us?
 Ravi: Of course. Let us leave early in the morning.
 Narrator: And so their journey began.</textarea>
-      </div>
-      <div class="space-y-2">
-        <label class="text-label-sm text-secondary">Target language</label>
-        <div class="relative">
-          <select id="scene-lang" class="input-field appearance-none pr-10 py-2"></select>
-          <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none">expand_more</span>
-        </div>
-      </div>
-      <button id="scene-btn" class="btn-primary w-full py-3">Render Scene <span class="material-symbols-outlined">movie</span></button>
-
-      <p id="scene-status" class="text-body-sm text-secondary hidden"></p>
-
-      <div id="scene-result" class="hidden space-y-stack-md">
-        <div class="bg-surface rounded-xl p-4 border border-[#E3F2FD]">
-          <audio id="scene-audio" controls class="w-full"></audio>
-        </div>
-        <div id="scene-script-box" class="bg-[#E3F2FD]/40 rounded-xl p-4 border border-[#E3F2FD] space-y-2">
-          <p class="text-label-sm text-secondary uppercase tracking-wide">Translated script</p>
-          <ul id="scene-transcript" class="space-y-1"></ul>
-        </div>
-        <div class="bg-surface rounded-xl p-4 border border-outline-variant space-y-3">
-          <p class="text-label-sm text-secondary uppercase tracking-wide">Cast Assignment</p>
-          <ul id="cast-list" class="space-y-2"></ul>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-gutter pt-2">
-          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Real-Time Factor</p>
-            <p id="scene-stat-rtf" class="text-headline-md text-primary-container mt-1">—</p>
-          </div>
-          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Cache Savings</p>
-            <p id="scene-stat-cache-savings" class="text-headline-md text-primary-container mt-1">—</p>
-          </div>
-          <div class="bg-[#E3F2FD]/50 rounded-xl p-3 border border-[#E3F2FD]">
-            <p class="text-label-sm text-secondary uppercase tracking-wide">Time Taken (Translate | Speak)</p>
-            <p id="scene-stat-latency" class="text-headline-md text-primary-container mt-1">—</p>
+          </label>
+          <div class="select narrow" id="drama-lang">
+            <span class="field-label">Target language</span>
+            <div class="select-wrap">
+              <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span class="select-value"></span></button>
+              <ul class="select-list" role="listbox" hidden></ul>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-  </div>
 
-  <footer class="max-w-[720px] mx-auto py-stack-lg flex justify-between items-center mt-stack-lg border-t border-outline-variant">
-    <p class="text-label-sm text-secondary opacity-80">© Basha Localization</p>
-    <div class="flex gap-4">
-      <a class="text-label-sm text-secondary hover:underline opacity-80" href="/docs">API Docs</a>
+        <button class="btn-primary" id="generate-btn" type="button"></button>
+      </section>
+
+      <!-- Result -->
+      <section class="card result" id="result" hidden>
+        <div class="orb-holder">
+          <div class="orb" id="orb" aria-hidden="true">
+            <div class="orb-glow"></div>
+            <span class="orb-ring"></span>
+            <span class="orb-ring orb-ring-2"></span>
+            <div class="orb-sphere" id="orb-sphere">
+              <div class="orb-fill"></div>
+              <div class="orb-blob orb-blob-1"></div>
+              <div class="orb-blob orb-blob-2"></div>
+              <div class="orb-conic"></div>
+              <div class="orb-core"></div>
+              <div class="orb-shadow"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="playback">
+          <button class="play-btn" id="play-btn" type="button" aria-label="Play"></button>
+          <div class="pb-row">
+            <span class="pb-time cur" id="cur-time">0:00</span>
+            <div class="pb-track">
+              <div class="pb-bg"></div>
+              <div class="pb-fill" id="pb-fill"></div>
+              <span class="pb-thumb" id="pb-thumb"></span>
+              <input type="range" id="pb-seek" min="0" max="0" step="0.1" value="0" aria-label="Seek"/>
+            </div>
+            <span class="pb-time" id="dur-time">0:00</span>
+          </div>
+        </div>
+
+        <div id="result-content"></div>
+
+        <div class="download-row">
+          <a class="download-link" id="download-btn" download></a>
+        </div>
+
+        <div class="metrics" id="metrics"></div>
+      </section>
     </div>
-  </footer>
-</main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="foot-left">
+        <span>© Basha Localization</span>
+        <a href="/docs">API Docs</a>
+      </div>
+      <span class="foot-right">
+        <span id="cache-info">Cache: …</span>
+        <button class="clear-btn" id="clear-cache" type="button">Clear cache</button>
+      </span>
+    </footer>
+
+  </div>
 </div>
 
+<audio id="player" preload="metadata"></audio>
+
 <script>
-const LANGS = {
-  "English": "en", "Telugu (తెలుగు)": "te", "Hindi (हिन्दी)": "hi", "Tamil (தமிழ்)": "ta",
-  "Kannada (ಕನ್ನಡ)": "kn", "Malayalam (മലയാളം)": "ml", "Marathi (मराठी)": "mr",
-  "German (Deutsch)": "de", "French (Français)": "fr", "Spanish (Español)": "es",
-  "Italian (Italiano)": "it", "Portuguese (Português)": "pt"
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ s = Math.max(0, s||0); const m = Math.floor(s/60); const sec = Math.floor(s%60); return m + ':' + String(sec).padStart(2,'0'); }
+
+// ---- Inline icons ----
+const IC = {
+  chevron: '<svg class="select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  check:   '<svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  play:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+  pause:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+  download:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+  spark:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.4a3 3 0 0 0 1.9 1.9L21 11l-5.3 1.7a3 3 0 0 0-1.9 1.9L12 20l-1.8-5.4a3 3 0 0 0-1.9-1.9L3 11l5.3-1.7a3 3 0 0 0 1.9-1.9z"/></svg>',
+  mic:     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+  sun:     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
+  moon:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
 };
 
-function fillLangs(sel, defaultCode) {
-  for (const [name, code] of Object.entries(LANGS)) {
-    const o = document.createElement("option");
-    o.value = code; o.textContent = name;
-    if (code === defaultCode) o.selected = true;
-    sel.appendChild(o);
+// ---- Data ----
+const LANGS = [
+  ['en','English'], ['te','Telugu (తెలుగు)'], ['hi','Hindi (हिन्दी)'], ['ta','Tamil (தமிழ்)'],
+  ['kn','Kannada (ಕನ್ನಡ)'], ['ml','Malayalam (മലയാളം)'], ['mr','Marathi (मराठी)'],
+  ['de','German (Deutsch)'], ['fr','French (Français)'], ['es','Spanish (Español)'],
+  ['it','Italian (Italiano)'], ['pt','Portuguese (Português)']
+].map(([value,label]) => ({ value, label }));
+const VOICES = [ { value:'female', label:'Female' }, { value:'male', label:'Male' } ];
+
+// ---- Custom select ----
+function initSelect(root, options, defaultValue){
+  const trigger = root.querySelector('.select-trigger');
+  const valueEl = root.querySelector('.select-value');
+  const list = root.querySelector('.select-list');
+  trigger.insertAdjacentHTML('beforeend', IC.chevron);
+  let value = defaultValue;
+
+  options.forEach(o => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'select-option'; b.dataset.val = o.value;
+    b.innerHTML = '<span>' + esc(o.label) + '</span>' + IC.check;
+    b.addEventListener('click', () => { setValue(o.value); close(); });
+    li.appendChild(b); list.appendChild(li);
+  });
+
+  function setValue(v){
+    value = v;
+    const opt = options.find(o => o.value === v) || options[0];
+    valueEl.textContent = opt.label;
+    list.querySelectorAll('.select-option').forEach(b => b.classList.toggle('active', b.dataset.val === v));
   }
+  function open(){ root.classList.add('open'); trigger.setAttribute('aria-expanded','true'); list.hidden = false; }
+  function close(){ root.classList.remove('open'); trigger.setAttribute('aria-expanded','false'); list.hidden = true; }
+  trigger.addEventListener('click', (e) => { e.stopPropagation(); root.classList.contains('open') ? close() : open(); });
+  document.addEventListener('mousedown', (e) => { if(!root.contains(e.target)) close(); });
+
+  setValue(defaultValue);
+  return { get value(){ return value; } };
 }
-fillLangs(document.getElementById("tts-lang"), "te");
-fillLangs(document.getElementById("scene-lang"), "hi");
+
+const singleLang  = initSelect($('single-lang'),  LANGS,  'te');
+const singleVoice = initSelect($('single-voice'), VOICES, 'female');
+const dramaLang   = initSelect($('drama-lang'),   LANGS,  'hi');
+
+// ---- Mode switch ----
+let currentMode = 'single';
+document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+function setMode(m){
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  $('single-panel').hidden = m !== 'single';
+  $('drama-panel').hidden  = m !== 'drama';
+  hideResult();
+  setGenerateLabel();
+}
+function setGenerateLabel(){
+  $('generate-btn').innerHTML = IC.spark + '<span>' + (currentMode === 'single' ? 'Generate Audio' : 'Render Scene') + '</span>';
+}
+
+// ---- Audio + orb ----
+const player = $('player');
+const orb = $('orb');
+const sphere = $('orb-sphere');
+let audioCtx, analyser, srcNode, freqData, rafId;
+
+function ensureGraph(){
+  if(audioCtx) return;
+  try{
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    srcNode = audioCtx.createMediaElementSource(player);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    srcNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+  }catch(e){ /* Web Audio unsupported — orb still animates via CSS */ }
+}
+function orbLoop(){
+  if(analyser){
+    analyser.getByteFrequencyData(freqData);
+    let sum = 0; for(let i=0;i<freqData.length;i++) sum += freqData[i];
+    const level = Math.min(1, (sum / freqData.length / 255) * 1.7);
+    sphere.style.setProperty('--orb-scale', (1 + level * 0.12).toFixed(3));
+  }
+  rafId = requestAnimationFrame(orbLoop);
+}
+player.addEventListener('play', () => {
+  ensureGraph();
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  orb.classList.add('playing');
+  $('play-btn').innerHTML = IC.pause; $('play-btn').setAttribute('aria-label','Pause');
+  cancelAnimationFrame(rafId); orbLoop();
+});
+function pauseVisual(){
+  orb.classList.remove('playing');
+  $('play-btn').innerHTML = IC.play; $('play-btn').setAttribute('aria-label','Play');
+  cancelAnimationFrame(rafId);
+  sphere.style.setProperty('--orb-scale','1');
+}
+player.addEventListener('pause', pauseVisual);
+player.addEventListener('ended', pauseVisual);
+function stopAudio(){ try{ player.pause(); }catch(e){} pauseVisual(); }
+
+$('play-btn').addEventListener('click', () => { if(player.paused) player.play(); else player.pause(); });
+player.addEventListener('loadedmetadata', () => {
+  $('pb-seek').max = player.duration || 0;
+  $('dur-time').textContent = fmt(player.duration || 0);
+});
+player.addEventListener('timeupdate', () => {
+  const d = player.duration || 0, c = player.currentTime || 0;
+  const pct = d > 0 ? (c / d * 100) : 0;
+  $('pb-fill').style.width = pct + '%';
+  $('pb-thumb').style.left = pct + '%';
+  $('pb-seek').value = c;
+  $('cur-time').textContent = fmt(c);
+});
+$('pb-seek').addEventListener('input', (e) => { player.currentTime = Number(e.target.value); });
+
+function loadAudio(url, name){
+  stopAudio();
+  player.src = url;
+  const dl = $('download-btn'); dl.href = url; dl.setAttribute('download', name);
+  $('pb-fill').style.width = '0%'; $('pb-thumb').style.left = '0%';
+  $('cur-time').textContent = '0:00';
+  $('play-btn').innerHTML = IC.play;
+}
+
+// ---- Result rendering ----
+function hideResult(){ $('result').hidden = true; stopAudio(); }
+function showResult(){ $('result').hidden = false; }
+function setMetrics(m){
+  const rtf = (typeof m.rtf === 'number') ? m.rtf.toFixed(2) + '×' : '—';
+  const sav = (typeof m.cache_savings === 'number') ? Math.round(m.cache_savings) + '%' : '—';
+  const tt  = (typeof m.translation_time === 'number' ? m.translation_time : 0).toFixed(1);
+  const st  = (typeof m.synthesis_time   === 'number' ? m.synthesis_time   : 0).toFixed(1);
+  const tiles = [
+    ['Real-Time Factor', rtf],
+    ['Cache Savings', sav],
+    ['Translate | Speak', tt + ' | ' + st + 's'],
+  ];
+  $('metrics').innerHTML = tiles.map(([l,v]) =>
+    '<div class="metric"><div class="mval">' + esc(v) + '</div><div class="mlabel">' + esc(l) + '</div></div>'
+  ).join('');
+}
+function renderSingleResult(m){
+  $('result-content').innerHTML =
+    '<div class="tcontent"><span class="field-label">Translated text</span>' +
+    '<p class="panel-box">' + esc(m.translated_text || '(not available)') + '</p></div>';
+  setMetrics(m);
+}
+function renderSceneResult(cast, b64, m){
+  let scriptHtml = '';
+  if(b64){
+    try{
+      const lines = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      scriptHtml =
+        '<div class="tcontent"><span class="field-label">Translated script</span>' +
+        '<div class="panel-box script-box">' +
+        lines.map(l => '<p class="script-line"><span class="speaker">' + esc(l.speaker) + ':</span> ' + esc(l.text) + '</p>').join('') +
+        '</div></div>';
+    }catch(e){ /* ignore decode errors */ }
+  }
+  const castHtml =
+    '<div class="tcontent"><span class="field-label">Cast</span><div class="cast-wrap">' +
+    Object.entries(cast).map(([n,v]) =>
+      '<span class="cast-pill"><span class="cast-name">' + esc(n) + '</span><span class="cast-voice">' + esc(v) + '</span></span>'
+    ).join('') +
+    '</div></div>';
+  $('result-content').innerHTML = '<div class="tstack">' + scriptHtml + castHtml + '</div>';
+  setMetrics(m);
+}
+
+// ---- Button loading state ----
+function btnLoading(text){ const b = $('generate-btn'); b.disabled = true; b.innerHTML = '<span class="spinner"></span><span>' + esc(text) + '</span>'; }
+function btnIdle(){ $('generate-btn').disabled = false; setGenerateLabel(); }
+
+// ---- Generate (single, via background job queue) ----
+async function generateSingle(){
+  const text = $('single-text').value.trim();
+  if(!text){ flash('Please enter some text.'); return; }
+  hideResult(); btnLoading('Submitting…');
+  try{
+    const submit = await fetch('/jobs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, target_language: singleLang.value, gender: singleVoice.value })
+    });
+    if(!submit.ok) throw new Error(await submit.text());
+    const { job_id } = await submit.json();
+    btnLoading('Translating, synthesizing & stitching…');
+    while(true){
+      await sleep(700);
+      const s = await (await fetch('/jobs/' + job_id)).json();
+      if(s.status === 'completed'){
+        const blob = await (await fetch(s.download_url)).blob();
+        loadAudio(URL.createObjectURL(blob), 'basha_' + singleLang.value + '.mp3');
+        renderSingleResult(s.metrics || {});
+        showResult(); loadCache();
+        break;
+      } else if(s.status === 'failed'){
+        throw new Error(s.error || 'synthesis failed');
+      }
+    }
+  }catch(e){ flash('Error: ' + e.message); }
+  finally{ btnIdle(); }
+}
+
+// ---- Render scene (multi-voice) ----
+async function renderScene(){
+  const script = $('drama-script').value.trim();
+  if(!script){ flash('Please write a script.'); return; }
+  hideResult(); btnLoading('Casting voices, translating & stitching…');
+  try{
+    const resp = await fetch('/scene', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ script, target_language: dramaLang.value, translate: true })
+    });
+    if(!resp.ok) throw new Error(await resp.text());
+    const cast = JSON.parse(resp.headers.get('X-Cast') || '{}');
+    const b64 = resp.headers.get('X-Script');
+    let metrics = {}; try{ metrics = JSON.parse(resp.headers.get('X-Metrics') || '{}'); }catch(e){}
+    const blob = await resp.blob();
+    loadAudio(URL.createObjectURL(blob), 'basha_scene_' + dramaLang.value + '.mp3');
+    renderSceneResult(cast, b64, metrics);
+    showResult(); loadCache();
+  }catch(e){ flash('Error: ' + e.message); }
+  finally{ btnIdle(); }
+}
+
+$('generate-btn').addEventListener('click', () => currentMode === 'single' ? generateSingle() : renderScene());
 
 // ---- Health + cache ----
-async function checkHealth() {
-  const dot = document.getElementById("status-dot"), txt = document.getElementById("status-text");
-  try {
-    const r = await fetch("/health");
-    const d = await r.json();
-    if (d.status === "healthy") { dot.className = "w-2 h-2 rounded-full bg-green-500"; txt.textContent = "API Online"; }
-    else { dot.className = "w-2 h-2 rounded-full bg-yellow-500"; txt.textContent = "API Degraded"; }
-  } catch { dot.className = "w-2 h-2 rounded-full bg-red-500"; txt.textContent = "API Offline"; }
+async function checkHealth(){
+  const chip = $('status-chip'), txt = $('status-text');
+  try{
+    const d = await (await fetch('/health')).json();
+    if(d.status === 'healthy'){ chip.className = 'status-chip online'; txt.textContent = 'Engine online'; }
+    else { chip.className = 'status-chip degraded'; txt.textContent = 'Engine degraded'; }
+  }catch{ chip.className = 'status-chip offline'; txt.textContent = 'Engine offline'; }
 }
-async function loadCache() {
-  try {
-    const d = await (await fetch("/cache/stats")).json();
-    document.getElementById("cache-info").textContent = `${d.cached_files} files · ${d.total_mb} MB`;
-  } catch { document.getElementById("cache-info").textContent = "unavailable"; }
+async function loadCache(){
+  try{
+    const d = await (await fetch('/cache/stats')).json();
+    $('cache-info').textContent = 'Cache: ' + d.cached_files + ' files · ' + d.total_mb + ' MB';
+  }catch{ $('cache-info').textContent = 'Cache: unavailable'; }
 }
-document.getElementById("clear-cache-btn").onclick = async () => {
-  await fetch("/cache", { method: "DELETE" });
-  loadCache();
-};
-checkHealth(); loadCache(); setInterval(checkHealth, 15000);
+$('clear-cache').addEventListener('click', async () => { try{ await fetch('/cache', { method:'DELETE' }); }catch(e){} loadCache(); });
 
-// ---- Generate Audio (job queue) ----
-document.getElementById("generate-btn").onclick = async () => {
-  const text = document.getElementById("tts-text").value.trim();
-  const btn = document.getElementById("generate-btn");
-  const status = document.getElementById("tts-status");
-  const result = document.getElementById("tts-result");
-  if (!text) { alert("Please enter some text."); return; }
+// ---- Theme toggle ----
+function refreshThemeIcon(){ $('theme-toggle').innerHTML = document.documentElement.classList.contains('light') ? IC.sun : IC.moon; }
+$('theme-toggle').addEventListener('click', () => {
+  const light = !document.documentElement.classList.contains('light');
+  document.documentElement.classList.toggle('light', light);
+  try{ localStorage.setItem('basha-theme', light ? 'light' : 'dark'); }catch(e){}
+  refreshThemeIcon();
+});
 
-  btn.disabled = true; status.classList.remove("hidden"); result.classList.add("hidden");
-  status.textContent = "Submitting to synthesis queue…";
+// ---- Toast ----
+let toastEl;
+function flash(msg){
+  if(!toastEl){ toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(toastEl._t); toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 3500);
+}
 
-  try {
-    const submit = await fetch("/jobs", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        target_language: document.getElementById("tts-lang").value,
-        gender: document.getElementById("tts-gender").value
-      })
-    });
-    const job = await submit.json();
-    const id = job.job_id;
-
-    while (true) {
-      await new Promise(r => setTimeout(r, 700));
-      const s = await (await fetch(`/jobs/${id}`)).json();
-      if (s.status === "processing") status.textContent = "Translating, synthesizing & stitching…";
-      else if (s.status === "completed") {
-        status.textContent = "Done!";
-        const blob = await (await fetch(s.download_url)).blob();
-        const url = URL.createObjectURL(blob);
-        document.getElementById("tts-audio").src = url;
-        const dl = document.getElementById("tts-download");
-        dl.href = url; dl.download = `basha_${document.getElementById("tts-lang").value}.mp3`;
-        const metrics = s.metrics || {};
-        const rtf = metrics.rtf;
-        document.getElementById("stat-rtf").textContent = rtf ? rtf.toFixed(3) : "—";
-        const savings = metrics.cache_savings;
-        document.getElementById("stat-cache-savings").textContent = savings !== undefined ? savings.toFixed(1) + "%" : "—";
-        const trans = metrics.translation_time || 0;
-        const synth = metrics.synthesis_time || 0;
-        document.getElementById("stat-latency").textContent = `${trans.toFixed(2)}s | ${synth.toFixed(2)}s`;
-        document.getElementById("tts-translation").textContent =
-          (s.metrics && s.metrics.translated_text) ? s.metrics.translated_text : "(not available)";
-        result.classList.remove("hidden"); status.classList.add("hidden");
-        loadCache();
-        break;
-      } else if (s.status === "failed") { status.textContent = "Failed: " + (s.error || "unknown"); break; }
-    }
-  } catch (e) { status.textContent = "Error: " + e.message; }
-  finally { btn.disabled = false; }
-};
-
-// ---- Render Scene ----
-document.getElementById("scene-btn").onclick = async () => {
-  const script = document.getElementById("scene-script").value.trim();
-  const btn = document.getElementById("scene-btn");
-  const status = document.getElementById("scene-status");
-  const result = document.getElementById("scene-result");
-  if (!script) { alert("Please write a script."); return; }
-
-  btn.disabled = true; status.classList.remove("hidden"); result.classList.add("hidden");
-  status.textContent = "Casting voices, translating & stitching…";
-
-  try {
-    const resp = await fetch("/scene", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        script,
-        target_language: document.getElementById("scene-lang").value,
-        translate: true
-      })
-    });
-    if (!resp.ok) { status.textContent = "Error: " + (await resp.text()); return; }
-    const cast = JSON.parse(resp.headers.get("X-Cast") || "{}");
-    const blob = await resp.blob();
-    document.getElementById("scene-audio").src = URL.createObjectURL(blob);
-
-    // Decode the base64 UTF-8 translated script and render it line by line.
-    const tul = document.getElementById("scene-transcript");
-    tul.innerHTML = "";
-    const b64 = resp.headers.get("X-Script");
-    if (b64) {
-      try {
-        const transcript = JSON.parse(decodeURIComponent(escape(atob(b64))));
-        for (const line of transcript) {
-          const li = document.createElement("li");
-          li.className = "text-body-sm text-on-surface";
-          li.innerHTML = `<span class="font-semibold text-primary-container">${line.speaker}:</span> ${line.text}`;
-          tul.appendChild(li);
-        }
-        document.getElementById("scene-script-box").classList.remove("hidden");
-      } catch (e) { document.getElementById("scene-script-box").classList.add("hidden"); }
-    }
-
-    const ul = document.getElementById("cast-list");
-    ul.innerHTML = "";
-    for (const [name, voice] of Object.entries(cast)) {
-      const li = document.createElement("li");
-      li.className = "flex items-center justify-between text-body-sm bg-surface-container-low p-2 rounded-lg";
-      li.innerHTML = `<span class="font-medium">${name}</span>
-        <span class="material-symbols-outlined text-secondary text-[16px]">arrow_right_alt</span>
-        <span class="text-primary-container bg-[#E3F2FD] px-2 py-0.5 rounded text-xs">${voice}</span>`;
-      ul.appendChild(li);
-    }
-
-    const metricsHeader = resp.headers.get("X-Metrics");
-    let metrics = {};
-    if (metricsHeader) {
-      try {
-        metrics = JSON.parse(metricsHeader);
-      } catch (e) { console.error(e); }
-    }
-    const rtf = metrics.rtf;
-    document.getElementById("scene-stat-rtf").textContent = rtf ? rtf.toFixed(3) : "—";
-    const savings = metrics.cache_savings;
-    document.getElementById("scene-stat-cache-savings").textContent = savings !== undefined ? savings.toFixed(1) + "%" : "—";
-    const trans = metrics.translation_time || 0;
-    const synth = metrics.synthesis_time || 0;
-    document.getElementById("scene-stat-latency").textContent = `${trans.toFixed(2)}s | ${synth.toFixed(2)}s`;
-
-    result.classList.remove("hidden"); status.classList.add("hidden");
-    loadCache();
-  } catch (e) { status.textContent = "Error: " + e.message; }
-  finally { btn.disabled = false; }
-};
+// ---- Init ----
+$('brand-mark').innerHTML = IC.mic;
+$('play-btn').innerHTML = IC.play;
+$('download-btn').innerHTML = IC.download + '<span>Download MP3</span>';
+setGenerateLabel();
+refreshThemeIcon();
+checkHealth(); loadCache();
+setInterval(checkHealth, 15000);
 </script>
 </body>
 </html>

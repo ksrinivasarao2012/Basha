@@ -156,9 +156,17 @@ class PipelineOrchestrator:
         vm = VoiceManager(valid_map)
         tts = EdgeTTSBackend()  # only Edge supports multiple distinct voices
 
-        # Reserve one fixed voice for the Narrator (only if the script has narration),
-        # and keep it out of the pool so no character is ever assigned the same voice.
-        has_narrator = any(spk is None for spk, _ in lines)
+        # The Narrator can appear two ways: written explicitly as "Narrator: ..."
+        # (the parser yields the string "Narrator") or implied by a line with no
+        # "Speaker:" prefix (the parser yields None). Treat both — and any casing
+        # like "narrator"/"NARRATOR" — as the one Narrator.
+        def _is_narrator(spk: Optional[str]) -> bool:
+            return spk is None or spk.strip().lower() == "narrator"
+
+        # Reserve one fixed, deterministic voice for the Narrator (only if the
+        # script actually has narration) and keep it out of the character pool so
+        # no character is ever assigned the same voice.
+        has_narrator = any(_is_narrator(spk) for spk, _ in lines)
         narrator_voice = None
         if has_narrator:
             narrator_voice = valid_map.get("Narrator") or vm.get_narrator_voice(target_lang)
@@ -177,7 +185,9 @@ class PipelineOrchestrator:
         with LogContext("basha.pipeline", "render_scene",
                         {"target_lang": target_lang, "lines": len(lines), "translate": translate}):
             for idx, (speaker, utterance) in enumerate(lines):
-                speaker_key = speaker or "Narrator"
+                # Normalise every narrator reference (None / "narrator" / "NARRATOR")
+                # to a single "Narrator" cast member that always uses the reserved voice.
+                speaker_key = "Narrator" if _is_narrator(speaker) else speaker
                 # Assign a voice once per speaker so a character always sounds the same.
                 if speaker_key not in cast:
                     if speaker_key == "Narrator":

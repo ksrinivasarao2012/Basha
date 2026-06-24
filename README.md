@@ -51,7 +51,8 @@ text ──▶ Chunker ──▶ Translation ──▶ TTS ──▶ Stitcher �
 - 🌍 **Translate + narrate** English into 11+ languages.
 - 🗣️ **Male / female voice** selection (neural Edge-TTS voices).
 - 🎭 **Multi-voice audio drama** — write a `Name: dialogue` script; each character is
-  auto-assigned a distinct voice, the scene is translated, narrated, and stitched into one clip.
+  auto-assigned a distinct voice (the **Narrator** gets a fixed, reserved voice that no character
+  ever reuses), the scene is translated, narrated, and stitched into one clip.
   The **translated script** is shown alongside the audio.
 - 📝 **Translated-text display** — you always see exactly what is being spoken.
 - ⚡ **Audio cache** (SHA-256 keyed on text + language + voice) — identical requests are never
@@ -59,7 +60,8 @@ text ──▶ Chunker ──▶ Translation ──▶ TTS ──▶ Stitcher �
 - 🧵 **Async jobs** — long text is processed in the background with a job token you poll.
 - 📊 **Performance metrics** — Real-Time Factor (RTF) per job.
 - 🔌 **Swappable backends** — gTTS and Edge-TTS behind one interface.
-- 🖥️ **Web UI** served by the API itself (no separate server / CORS setup).
+- 🖥️ **Web UI** served by the API itself (no separate server / CORS setup) — a dark "Aurora
+  Violet" theme with a live **voice orb** that pulses in time with the spoken audio.
 
 ---
 
@@ -142,7 +144,7 @@ basha/
 │       └── metrics.py            # semantic similarity (BERT), RTF, CER/WER helpers
 │
 ├── client/
-│   └── web/index.html            # web UI (HTML + Tailwind + vanilla JS)
+│   └── web/index.html            # web UI (HTML + CSS + vanilla JS, reactive voice orb)
 │
 ├── scripts/
 │   ├── tts_eval.py               # TTS evaluation: speed and reliability benchmark
@@ -167,7 +169,7 @@ basha/
 | Audio            | pydub + ffmpeg                               | Free                  |
 | ASR (eval only)  | SpeechRecognition → Google STT               | Free, rate-limited    |
 | Eval scoring     | sentence-transformers (multilingual BERT)    | Free                  |
-| Web UI           | HTML + Tailwind (CDN) + vanilla JS           | Free, no build step   |
+| Web UI           | HTML + CSS + vanilla JS (reactive voice orb)  | Free, no build step   |
 | Tests            | pytest                                        | Free                  |
 
 > `gTTS` / `deep-translator` use Google's unofficial public endpoints — perfect as a free
