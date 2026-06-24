@@ -92,9 +92,8 @@ flowchart TD
 
 Two principles the design hangs on:
 
-1. **Everything behind an interface.** `TTSBackend` is an abstract base class resolved at runtime by `TTSFactory` (supporting `gtts`, `edge`, and `sarvam`). `TranslateBackend` defines the translation interface, implemented by `DeepTranslatorBackend`.
-2. **Free & CPU-first.** The default path needs no GPU, no paid key, and no model download.
-   Premium backends (Sarvam) are optional add-ons that degrade gracefully when absent.
+1. **Everything behind an interface.** `TTSBackend` is an abstract base class resolved at runtime by `TTSFactory` (supporting `gtts` and `edge`). `TranslateBackend` defines the translation interface, implemented by `DeepTranslatorBackend`.
+2. **Free & CPU-first.** The default path needs no GPU, no paid key, and no model download. Additional backends can be plugged in easily and degrade gracefully when absent.
 
 ---
 
@@ -250,24 +249,17 @@ All **11 languages** transcribe back at **0.80–0.92 semantic similarity** — 
 
 Reproduce it:
 ```bash
-# copy the FLORES gold set to the project root first (see note below)
 python scripts/asr_semantic_eval.py --langs hi te de ta kn mr fr es it pt ml --sample 10
 ```
 
-> **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the current working directory. Before running them, copy the file from `samples/input/flores_evaluation_set.json` to the project root:
-> ```bash
-> cp samples/input/flores_evaluation_set.json .
-> ```
+> **Note on FLORES dataset:** The evaluation scripts look for `flores_evaluation_set.json` in the project root/current working directory, where it is already located.
 
 ---
 
 ## Design decisions
 
-- **No LLM in the critical path.** The focus is synthesis + localization, not authoring.
-- **Free-first, premium-optional.** gTTS/Edge-TTS/deep-translator are the default; Sarvam is a
-  swappable add-on that activates only with a key.
-- **Graceful degradation.** Missing key or unsupported language narrows quality, never breaks
-  the service.
+- **Free-first, CPU-friendly.** gTTS/Edge-TTS/deep-translator are the default out of the box, requiring no setup or API keys.
+- **Graceful degradation.** Missing configuration or unsupported languages narrow quality rather than breaking the service.
 - **Measure, and be honest about it.** Each metric is paired with what it does *not* prove —
   vendor bias, surface-vs-meaning, intelligibility-vs-naturalness.
 
@@ -281,10 +273,8 @@ python scripts/asr_semantic_eval.py --langs hi te de ta kn mr fr es it pt ml --s
 - **Streaming synthesis** — return audio as it's generated.
 - **Voice cloning** for a consistent narrator across a series.
 
----
-
 ## Acknowledgements
 
 Built on **gTTS**, **Microsoft Edge-TTS**, **deep-translator**, **pydub/ffmpeg**,
-**SpeechRecognition**, **sentence-transformers**, and **FastAPI**. Optional premium speech via **Sarvam AI**.
+**SpeechRecognition**, **sentence-transformers**, and **FastAPI**.
 FLORES evaluation data from the **NLLB / FLORES-200** project.
