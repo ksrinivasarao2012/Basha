@@ -59,3 +59,8 @@ client/streamlit_app.py
 
 # Env template
 .env.example
+
+# UI redesign working files (kept locally, not part of the repo)
+UI_DESIGN_BRIEF.md
+client/web/index-old.html
+ui-redesign-brief.zip
