@@ -4,6 +4,7 @@ from typing import List, Dict, Optional, Tuple, Any
 from pydub import AudioSegment
 from basha.pipeline.chunker import split_text_into_chunks
 from basha.script.parser import parse_dialogue
+from basha.script.gender import guess_gender, split_gender_tag
 from basha.pipeline.stitcher import stitch_audio_chunks
 from basha.translation.deep_translator_backend import DeepTranslatorBackend
 from basha.tts.factory import TTSFactory
@@ -166,15 +167,36 @@ class PipelineOrchestrator:
         # Reserve one fixed, deterministic voice for the Narrator (only if the
         # script actually has narration) and keep it out of the character pool so
         # no character is ever assigned the same voice.
-        has_narrator = any(_is_narrator(spk) for spk, _ in lines)
+        has_narrator = any(_is_narrator(split_gender_tag(spk)[0]) for spk, _ in lines)
         narrator_voice = None
         if has_narrator:
             narrator_voice = valid_map.get("Narrator") or vm.get_narrator_voice(target_lang)
         exclude_voices = [narrator_voice] if narrator_voice else None
 
+        # A short spoken intro played whenever the speaker changes — "Ravi is
+        # speaking." / "Narrator is telling." — in that speaker's own voice, so the
+        # listener always knows who is talking even when two speakers end up sharing
+        # a voice (common in languages with only one voice per gender). Built once
+        # per speaker and reused.
+        announce_clips: Dict[str, bytes] = {}
+
+        def _announce_clip(spk_key: str, voice: Optional[str]) -> Optional[bytes]:
+            if not voice:
+                return None
+            if spk_key in announce_clips:
+                return announce_clips[spk_key]
+            text = "Narrator is telling." if spk_key == "Narrator" else f"{spk_key} is speaking."
+            clip = self.cache.get(text, target_lang, voice=voice, backend="EdgeTTSBackend")
+            if clip is None:
+                clip = tts.synthesize(text, lang=target_lang, voice=voice)
+                self.cache.set(text, target_lang, clip, voice=voice, backend="EdgeTTSBackend")
+            announce_clips[spk_key] = clip
+            return clip
+
         cast: Dict[str, str] = {}          # speaker -> voice id (stable per speaker)
         audio_clips: List[bytes] = []
         transcript: List[Dict[str, str]] = []   # speaker + (translated) line, for the UI
+        prev_speaker_key: Optional[str] = None   # announce only when the speaker changes
 
         # Track translation and synthesis time separately so the UI can show an
         # honest "Translate | Speak" breakdown (not one lumped-together number).
@@ -185,15 +207,22 @@ class PipelineOrchestrator:
         with LogContext("basha.pipeline", "render_scene",
                         {"target_lang": target_lang, "lines": len(lines), "translate": translate}):
             for idx, (speaker, utterance) in enumerate(lines):
-                # Normalise every narrator reference (None / "narrator" / "NARRATOR")
-                # to a single "Narrator" cast member that always uses the reserved voice.
-                speaker_key = "Narrator" if _is_narrator(speaker) else speaker
+                # Strip an optional "(male)"/"(female)" tag, then normalise every
+                # narrator reference (None / "narrator") to a single "Narrator"
+                # cast member that always uses the reserved (male) voice.
+                clean_name, explicit_gender = split_gender_tag(speaker)
+                speaker_key = "Narrator" if _is_narrator(clean_name) else clean_name
                 # Assign a voice once per speaker so a character always sounds the same.
                 if speaker_key not in cast:
                     if speaker_key == "Narrator":
                         cast[speaker_key] = narrator_voice
                     else:
-                        cast[speaker_key] = vm.get_voice(speaker_key, target_lang, exclude=exclude_voices)
+                        # Prefer an explicit "(male)/(female)" tag; otherwise guess
+                        # from the name; None falls back to round-robin.
+                        gender = explicit_gender or guess_gender(speaker_key)
+                        cast[speaker_key] = vm.get_voice(
+                            speaker_key, target_lang, gender=gender, exclude=exclude_voices
+                        )
                 voice_id = cast[speaker_key]
 
                 # Optionally localize the line.
@@ -203,6 +232,13 @@ class PipelineOrchestrator:
                     translation_time += time.perf_counter() - t0
 
                 transcript.append({"speaker": speaker_key, "text": utterance})
+
+                # Announce the speaker by name whenever the turn changes hands.
+                if speaker_key != prev_speaker_key:
+                    intro = _announce_clip(speaker_key, voice_id)
+                    if intro is not None:
+                        audio_clips.append(intro)
+                    prev_speaker_key = speaker_key
 
                 # Cache per (text, lang, voice) so re-renders are instant.
                 cached = self.cache.get(utterance, target_lang, voice=voice_id, backend="EdgeTTSBackend")

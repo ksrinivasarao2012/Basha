@@ -50,10 +50,12 @@ text ──▶ Chunker ──▶ Translation ──▶ TTS ──▶ Stitcher �
 
 - 🌍 **Translate + narrate** English into 11+ languages.
 - 🗣️ **Male / female voice** selection (neural Edge-TTS voices).
-- 🎭 **Multi-voice audio drama** — write a `Name: dialogue` script; each character is
-  auto-assigned a distinct voice (the **Narrator** gets a fixed, reserved voice that no character
-  ever reuses), the scene is translated, narrated, and stitched into one clip.
-  The **translated script** is shown alongside the audio.
+- 🎭 **Multi-voice audio drama** — write a `Name: dialogue` script; each character is assigned a
+  **gender-matched** voice — inferred from the name, or set explicitly with a tag like
+  `Ravi (male):`. The **Narrator** always uses a male voice. Every turn is announced by name
+  ("Ravi is speaking.", "Narrator is telling.") so speakers stay clear even when a language has
+  only one voice per gender. The scene is translated, narrated, and stitched into one clip, with
+  the **translated script** shown alongside the audio.
 - 📝 **Translated-text display** — you always see exactly what is being spoken.
 - ⚡ **Audio cache** (SHA-256 keyed on text + language + voice) — identical requests are never
   re-synthesized.

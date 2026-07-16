@@ -121,6 +121,13 @@ class VoiceManager:
             gender_key = gender.lower()
             gender_pool = [v["ShortName"] for v in all_voices
                            if v.get("Gender", "").lower() == gender_key and v["ShortName"] not in excluded]
+            if not gender_pool:
+                # Best effort: if every same-gender voice is excluded (e.g. a
+                # language with a single male voice already taken by the Narrator),
+                # keep the correct gender rather than switching to a wrong-gender
+                # voice. Spoken speaker announcements keep shared voices distinct.
+                gender_pool = [v["ShortName"] for v in all_voices
+                               if v.get("Gender", "").lower() == gender_key]
             if gender_pool:
                 idx = self._round_robin_index[target_lang].get(gender_key, 0)
                 voice = gender_pool[idx % len(gender_pool)]

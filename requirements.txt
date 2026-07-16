@@ -27,6 +27,7 @@ gtts>=2.5                      # free text-to-speech (needs internet, no key)
 edge-tts>=7.0                  # free neural TTS, male/female voices (multi-voice scenes)
 deep-translator>=1.11          # free translation (needs internet, no key)
 sentence-transformers>=2.5.0   # semantic similarity evaluation (BERT model)
+gender-guesser>=0.4            # optional: broadens name->gender voice matching in scenes
 
 # ---- TIER 1: audio handling ------------------------------------------------
 pydub>=0.25                    # stitch/concatenate audio clips (needs ffmpeg)
