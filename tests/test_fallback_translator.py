@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from basha.translation.fallback_backend import (
-    FallbackTranslator, TranslationError, mymemory_translate, azure_translate, _split_for_limit,
+    FallbackTranslator, TranslationError, mymemory_translate, azure_translate, gemini_translate, _split_for_limit,
 )
 
 
@@ -166,3 +166,86 @@ def test_provider_cooldown_length_comes_from_the_error():
     now[0] += 3100                     # past 1 h
     t.translate("three", "te")
     assert az.calls == 2
+
+
+# ---------------- Gemini ----------------
+def _gem(text):
+    return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
+
+
+def test_gemini_happy_path_and_request_shape(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "secret")
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(200, _gem("నమస్తే, మీరు ఎలా ఉన్నారు?"))) as post:
+        assert gemini_translate("Hello, how are you?", "te") == "నమస్తే, మీరు ఎలా ఉన్నారు?"
+    args, kw = post.call_args
+    assert "gemini-3.5-flash-lite:generateContent" in args[0]
+    assert "secret" not in args[0]                              # key never in the URL
+    assert kw["headers"]["x-goog-api-key"] == "secret"
+    assert kw["json"]["generationConfig"]["temperature"] == 0.0
+    assert "<text>Hello, how are you?</text>" in kw["json"]["contents"][0]["parts"][0]["text"]
+    assert "Telugu" in kw["json"]["systemInstruction"]["parts"][0]["text"]
+
+
+def test_gemini_model_is_configurable(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    monkeypatch.setenv("GEMINI_MODEL", "my-model")
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(200, _gem("नमस्ते"))) as post:
+        gemini_translate("Hello", "hi")
+    assert "models/my-model:generateContent" in post.call_args.args[0]
+
+
+def test_gemini_strips_echoed_tags(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(200, _gem("<text>नमस्ते</text>"))):
+        assert gemini_translate("Hello", "hi") == "नमस्ते"
+
+
+@pytest.mark.parametrize("bad", [
+    "Sure! Here is the Telugu translation: Hello",            # English commentary, wrong script
+    "",                                                       # empty
+    "నమస్తే " * 200,                                           # runaway length
+])
+def test_gemini_rejects_bad_answers(monkeypatch, bad):
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(200, _gem(bad))):
+        with pytest.raises(TranslationError):
+            gemini_translate("Hello", "te")
+
+
+def test_gemini_blocked_response_has_no_candidates(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(200, {"promptFeedback": {"blockReason": "SAFETY"}})):
+        with pytest.raises(TranslationError):
+            gemini_translate("Hello", "te")
+
+
+def test_gemini_http_errors_set_cooldowns(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(429, {})):
+        with pytest.raises(TranslationError) as e429:
+            gemini_translate("Hello", "te")
+    assert e429.value.cooldown == 120.0
+    with patch("basha.translation.fallback_backend.requests.post", return_value=_resp(403, {})):
+        with pytest.raises(TranslationError) as e403:
+            gemini_translate("Hello", "te")
+    assert e403.value.cooldown == 3600.0
+
+
+def test_gemini_missing_key_and_unsupported_language(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    with pytest.raises(TranslationError):
+        gemini_translate("Hello", "te")
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    with pytest.raises(TranslationError):
+        gemini_translate("Hello", "xx")
+
+
+def test_default_provider_order_with_all_keys(monkeypatch):
+    monkeypatch.setenv("AZURE_TRANSLATOR_KEY", "a")
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    assert [n for n, _ in FallbackTranslator().providers] == ["azure", "gemini", "google", "mymemory"]
+    monkeypatch.delenv("AZURE_TRANSLATOR_KEY")
+    assert [n for n, _ in FallbackTranslator().providers] == ["gemini", "google", "mymemory"]
+    monkeypatch.delenv("GEMINI_API_KEY")
+    assert [n for n, _ in FallbackTranslator().providers] == ["google", "mymemory"]

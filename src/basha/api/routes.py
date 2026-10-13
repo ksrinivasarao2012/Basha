@@ -269,3 +269,35 @@ def heath_check():
         health_info["status"] = "unhealthy"
     return health_info
 
+
+
+# ---------------------------------------------------------------------------
+# TEMPORARY DIAGNOSTIC -- remove after use.
+# Shows exactly what Google and MyMemory answer to THIS server (status, a few
+# headers, the start of the reply page) plus this server's public IP.
+# ---------------------------------------------------------------------------
+@router.get("/debug/translate-check")
+def debug_translate_check():
+    import requests as _rq
+
+    def probe(name, url, **kw):
+        try:
+            r = _rq.get(url, timeout=10, **kw)
+            return {
+                "name": name,
+                "status": r.status_code,
+                "headers": {k: v for k, v in r.headers.items()
+                            if k.lower() in ("retry-after", "content-type", "server", "x-ratelimit-remaining")},
+                "body_start": " ".join(r.text.split())[:500],
+            }
+        except Exception as e:
+            return {"name": name, "error": f"{type(e).__name__}: {e}"[:300]}
+
+    return {
+        "server_ip": probe("ipify", "https://api.ipify.org", params={"format": "json"}),
+        "google": probe("google", "https://translate.google.com/m",
+                        params={"sl": "en", "tl": "te", "q": "Hello"}),
+        "mymemory": probe("mymemory", "https://api.mymemory.translated.net/get",
+                          params={"q": "Hello", "langpair": "en-GB|te-IN"}),
+        "mymemory_email_set": bool(os.getenv("MYMEMORY_EMAIL")),
+    }
