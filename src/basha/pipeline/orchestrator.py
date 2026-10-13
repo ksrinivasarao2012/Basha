@@ -6,7 +6,7 @@ from basha.pipeline.chunker import split_text_into_chunks
 from basha.script.parser import parse_dialogue
 from basha.script.gender import guess_gender, split_gender_tag
 from basha.pipeline.stitcher import stitch_audio_chunks
-from basha.translation.deep_translator_backend import DeepTranslatorBackend
+from basha.translation.fallback_backend import FallbackTranslator
 from basha.tts.factory import TTSFactory
 from basha.tts.edge_tts import EdgeTTSBackend
 from basha.tts.voices import VoiceManager
@@ -21,7 +21,7 @@ class PipelineOrchestrator:
 
     def __init__(self):
         # Instantiate our translation backend and cache
-        self.translator = DeepTranslatorBackend()
+        self.translator = FallbackTranslator()  # Google first, MyMemory fallback, cached
         self.cache = AudioCache() 
         self.logger = get_logger("basha.pipeline")
 
