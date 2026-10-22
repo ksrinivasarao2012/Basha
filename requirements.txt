@@ -24,7 +24,7 @@ streamlit>=1.33
 
 # ---- TIER 1: free, zero-setup TTS + translation (the MVP path) -------------
 gtts>=2.5                      # free text-to-speech (needs internet, no key)
-edge-tts>=7.0                  # free neural TTS, male/female voices (multi-voice scenes)
+edge-tts>=7.3.1                  # free neural TTS, male/female voices (multi-voice scenes)
 deep-translator>=1.11          # free translation (needs internet, no key)
 sentence-transformers>=2.5.0   # semantic similarity evaluation (BERT model)
 gender-guesser>=0.4            # optional: broadens name->gender voice matching in scenes
