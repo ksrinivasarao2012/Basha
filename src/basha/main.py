@@ -26,4 +26,4 @@ app.include_router(api_router)
 # 5. Serve the web UI at the root URL (/). API docs remain at /docs.
 @app.get("/", include_in_schema=False)
 def serve_ui():
-    return FileResponse(os.path.join(_WEB_DIR, "index.html"))
+    return FileResponse(os.path.join(_WEB_DIR, "index.html"))

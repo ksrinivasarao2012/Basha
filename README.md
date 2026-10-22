@@ -21,6 +21,8 @@ no GPU required.
 5. [Project structure](#project-structure)
 6. [Tech stack](#tech-stack)
 7. [Getting started](#getting-started)
+   - [Option A — uv (recommended, fast)](#option-a--uv-recommended-fast)
+   - [Option B — pip (classic)](#option-b--pip-classic)
 8. [API reference](#api-reference)
 9. [How quality is measured](#how-quality-is-measured)
 10. [Design decisions](#design-decisions)
@@ -140,7 +142,8 @@ basha/
 │   ├── jobs/
 │   │   └── queue.py              # in-process async job submit/poll
 │   ├── script/
-│   │   └── parser.py             # Speaker: line script parsing helpers
+│   │   ├── parser.py             # "Speaker: text" dialogue parser
+│   │   └── gender.py             # name → gender inference for voice assignment
 │   └── eval/
 │       ├── asr_roundtrip.py      # synth → ASR → text (intelligibility check)
 │       └── metrics.py            # semantic similarity (BERT), RTF, CER/WER helpers
@@ -162,15 +165,16 @@ basha/
 
 ## Tech stack
 
-| Layer            | Tool                                         | Cost / notes          |
-|------------------|----------------------------------------------|-----------------------|
-| API service      | FastAPI + Uvicorn                            | Free                  |
-| TTS (fallback)   | gTTS                                         | Free, single voice    |
+| Layer            | Tool                                          | Cost / notes          |
+|------------------|-----------------------------------------------|-----------------------|
+| Package manager  | uv (recommended) / pip                        | Free                  |
+| API service      | FastAPI + Uvicorn                             | Free                  |
+| TTS (fallback)   | gTTS                                          | Free, single voice    |
 | TTS (neural)     | Edge-TTS                                      | Free, male/female     |
-| Translation      | deep-translator (Google Translate)           | Free                  |
-| Audio            | pydub + ffmpeg                               | Free                  |
-| ASR (eval only)  | SpeechRecognition → Google STT               | Free, rate-limited    |
-| Eval scoring     | sentence-transformers (multilingual BERT)    | Free                  |
+| Translation      | deep-translator (Google Translate)            | Free                  |
+| Audio            | pydub + ffmpeg                                | Free                  |
+| ASR (eval only)  | SpeechRecognition → Google STT                | Free, rate-limited    |
+| Eval scoring     | sentence-transformers (multilingual BERT)     | Free                  |
 | Web UI           | HTML + CSS + vanilla JS (reactive voice orb)  | Free, no build step   |
 | Tests            | pytest                                        | Free                  |
 
@@ -181,24 +185,105 @@ basha/
 
 ## Getting started
 
-```bash
-# 1. Install (editable, so "import basha" works from anywhere)
-pip install -r requirements.txt
-pip install -e .
+> **Prerequisites:** Python ≥ 3.10 and **ffmpeg** on your PATH.
+> `ffmpeg` is required by `pydub` for audio stitching.
+>
+> - **Windows:** `winget install ffmpeg` or `choco install ffmpeg`
+> - **macOS:** `brew install ffmpeg`
+> - **Linux / Docker:** `apt-get install -y ffmpeg`
 
+---
+
+### Option A — uv (recommended, fast)
+
+[uv](https://github.com/astral-sh/uv) is a drop-in replacement for pip + virtualenv written in
+Rust. It resolves and installs the full dependency tree in seconds instead of minutes.
+
+**Step 1 — Install uv** (one-time, global)
+
+```bash
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or via pip (works everywhere)
+pip install uv
 ```
 
-# 3. Run the service (serves both the API and the web UI)
+**Step 2 — Create a virtual environment and install dependencies**
+
+```bash
+# Create a .venv inside the project folder (Python 3.11 recommended)
+uv venv --python 3.11
+
+# Activate the environment
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+# macOS / Linux
+source .venv/bin/activate
+
+# Install all Tier-1 dependencies from requirements.txt
+uv pip install -r requirements.txt
+
+# Install the basha package itself in editable mode
+# (so "import basha" works from any directory)
+uv pip install -e .
+```
+
+**Step 3 — Run the service**
+
+```bash
 uvicorn basha.main:app --app-dir src --reload --port 8000
 ```
 
-Then open the web UI at:
+> Tip: you can also run it directly through uv without activating the venv:
+> ```bash
+> uv run uvicorn basha.main:app --app-dir src --reload --port 8000
+> ```
 
-### **http://localhost:8000**
+**Step 4 — Open the app**
 
-The interactive API docs are at **http://localhost:8000/docs**.
+| URL | What you get |
+|-----|--------------|
+| **http://localhost:8000** | Web UI (Aurora Violet theme, voice orb) |
+| **http://localhost:8000/docs** | Interactive Swagger API docs |
+| **http://localhost:8000/health** | Health check (internet + cache status) |
 
-> **ffmpeg** is required by `pydub` for audio stitching. Install it and ensure it's on PATH.
+**Step 5 — (Optional) Run the tests**
+
+```bash
+uv run pytest tests/ -v
+```
+
+---
+
+### Option B — pip (classic)
+
+If you prefer the standard pip workflow:
+
+```bash
+# 1. Create and activate a virtual environment
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Install the basha package in editable mode
+pip install -e .
+
+# 4. Run the service
+uvicorn basha.main:app --app-dir src --reload --port 8000
+```
+
+Then open **http://localhost:8000** for the web UI and **http://localhost:8000/docs** for the
+interactive API docs.
 
 ---
 
